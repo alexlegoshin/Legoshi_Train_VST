@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# venv (если создаётся внутри Project, а не рядом)
+.venv/
+
+# рабочие папки оркестратора — вход/выход конкретных прогонов, не код
+import/*
+!import/.gitkeep
+output/*
+!output/.gitkeep
+
+# локальный (не для публикации) оверрайд реальных путей к тестовому
+# корпусу — см. tests/local_paths.py
+tests/local_paths.py
+
+# ОС-мусор
+.DS_Store
