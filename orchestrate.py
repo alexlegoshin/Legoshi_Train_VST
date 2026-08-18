@@ -38,8 +38,6 @@ import numpy as np
 import pandas as pd
 import soundfile as sf
 
-import itertools
-
 from analysis import alignment, engine, recommendations, section_attribution, sections
 from analysis.metrics import layering, masking_erb
 from analysis.verdict import evaluate, format_report, load_preset, Reliability, Status
@@ -49,6 +47,17 @@ IMPORT_DIR = ROOT / "import"
 OUTPUT_DIR = ROOT / "output"
 PRESETS_DIR = ROOT / "presets"
 AUDIO_EXT = {".wav", ".mp3", ".flac", ".aiff", ".aif"}
+
+
+def load_interference_matrix() -> dict:
+    """Блок 7: пусто, если матрица ещё не построена (Блок 6 не прогнан) —
+    не падать, taste-рекомендации просто не строятся (см.
+    recommendations.all_taste_recommendations, отсутствие данных в
+    interference_matrix означает "нет хода", не ошибку)."""
+    path = PRESETS_DIR / "interference_matrix.json"
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
 
 # --- определение роли дорожки в трек-ауте ---
 # ТЗ-05 А10: английские ключевые слова — по явному запросу пользователя,
@@ -637,6 +646,29 @@ def write_report(out_dir: Path, track_name: str, measurements: dict, verdicts, d
         diag_lines.extend(attribution_lines)
         diag_lines.append("")
 
+    # Блок 7 («с выбором»): полный список за один запуск, сгруппированный
+    # по стадиям сведения (roadmap.md) — стадия только для читаемости
+    # вывода, НЕ заявка на проверенный совместный эффект (Блок 6 мерил
+    # каждый ход отдельно, не комбинациями). Программа не применяет сама.
+    interference_matrix = load_interference_matrix()
+    taste_recs = recommendations.all_taste_recommendations(verdicts, diagnostics or {}, interference_matrix)
+    if taste_recs:
+        diag_lines.append("Рекомендации по вкусовым правкам (Блок 7, с выбором — "
+                            "не применяется автоматически, стадии только для читаемости):")
+        # классический порядок сведения (roadmap.md) — не порядок появления
+        # на таймлайне, тот уже задан сортировкой ВНУТРИ каждой стадии
+        stage_order = ["вычитающий EQ", "компрессия", "добавляющий EQ", "сатурация",
+                        "наложение дублей", "без стадии/не покрыто"]
+        by_stage = {}
+        for r in taste_recs:
+            by_stage.setdefault(r.stage or "без стадии/не покрыто", []).append(r)
+        for stage in sorted(by_stage, key=lambda s: stage_order.index(s) if s in stage_order else len(stage_order)):
+            stage_recs = by_stage[stage]
+            diag_lines.append(f"  -- {stage} --")
+            for r in stage_recs:
+                diag_lines.append(f"    {r.text} (уверенность {r.confidence:.0%})")
+        diag_lines.append("")
+
     # ТЗ-05 Д: явный итоговый блок "что не измерено и почему" — часть
     # структурная (всегда так, не зависит от конкретного трека), часть
     # собрана из диагностики этого конкретного прогона
@@ -694,6 +726,12 @@ def write_report(out_dir: Path, track_name: str, measurements: dict, verdicts, d
             dict(category=r.category, source=r.source, location_s=r.location_s,
                  params=r.params, confidence=r.confidence, text=r.text)
             for r in restore_recs
+        ]
+    if taste_recs:
+        output_json["taste_recommendations"] = [
+            dict(category=r.category, source=r.source, section=r.section, stage=r.stage,
+                 params=r.params, confidence=r.confidence, text=r.text)
+            for r in taste_recs
         ]
     (out_dir / "measurements.json").write_text(json.dumps(output_json, indent=2, ensure_ascii=False, default=str),
                                                  encoding="utf-8")

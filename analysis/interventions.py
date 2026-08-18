@@ -131,3 +131,19 @@ MOVES = {
     "compressor_soft": lambda x, sr: compressor_soft(x, sr),
     "saturation_soft": lambda x, sr: saturation_soft(x),
 }
+
+# Блок 7: человекочитаемое описание параметров хода («примерно 2дБ в
+# районе 3кГц», roadmap.md — округлённый вывод, не ложная точность).
+# Числа буквально те же, что в MOVES выше — держать в синхроне при правке.
+MOVE_DESCRIPTIONS = {
+    "bell_cut_lowmid": "колокол, срез ~3дБ на ~300Гц",
+    "bell_boost_lowmid": "колокол, подъём ~3дБ на ~300Гц",
+    "bell_cut_presence": "колокол, срез ~3дБ на ~3кГц",
+    "bell_boost_presence": "колокол, подъём ~3дБ на ~3кГц",
+    "shelf_air_boost": "высокая полка, подъём ~2дБ выше ~10кГц",
+    "shelf_air_cut": "высокая полка, срез ~2дБ выше ~10кГц",
+    "shelf_low_boost": "низкая полка, подъём ~2дБ ниже ~80Гц",
+    "shelf_low_cut": "низкая полка, срез ~2дБ ниже ~80Гц",
+    "compressor_soft": "мягкая компрессия (~3:1)",
+    "saturation_soft": "мягкая сатурация (tape-стиль)",
+}
