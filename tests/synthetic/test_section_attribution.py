@@ -70,6 +70,31 @@ def test_worst_section_empty_medians():
     assert worst_section({}, zone) == (None, None, None)
 
 
+def test_worst_section_none_when_every_section_actually_in_zone():
+    """Регрессия (найдена код-ревью): если ВСЕ секции по отдельности
+    внутри зоны (delta_to_zone==0.0 у каждой), возвращать первую попавшуюся
+    как "худшую" — вводить в заблуждение (общий Verdict мог быть
+    OUT_OF_ZONE только из-за иной агрегации в verdict.py, не потому что
+    какая-то конкретная секция реально плохая)."""
+    zone = MetricZone(metric="m", source="mix", granularity="window", axis="ось",
+                       liked_lo=0.0, liked_hi=1.0)
+    section_medians = {"куплет": 0.5, "припев": 0.8}  # обе строго внутри [0.0, 1.0]
+    assert worst_section(section_medians, zone) == (None, None, None)
+
+
+def test_worst_section_ignores_in_zone_sections_when_picking_worst():
+    """Смежный случай: часть секций реально в зоне (delta=0), часть нет —
+    "худшей" должна выбираться только среди тех, что реально вне зоны, а
+    не случайно среди всех (в частности, не первая по порядку, если она
+    внутри зоны)."""
+    zone = MetricZone(metric="m", source="mix", granularity="window", axis="ось",
+                       liked_lo=0.0, liked_hi=1.0)
+    section_medians = {"куплет": 0.5, "припев": 2.5}  # куплет в зоне, припев далеко вне
+    label, val, delta = worst_section(section_medians, zone)
+    assert label == "припев"
+    assert val == 2.5
+
+
 if __name__ == "__main__":
     test_windows_grouped_by_section()
     test_windows_outside_any_section_are_dropped()
@@ -77,4 +102,6 @@ if __name__ == "__main__":
     test_worst_section_picks_farthest_from_zone()
     test_worst_section_none_for_direction_only_zone()
     test_worst_section_empty_medians()
+    test_worst_section_none_when_every_section_actually_in_zone()
+    test_worst_section_ignores_in_zone_sections_when_picking_worst()
     print("Все тесты атрибуции по секциям (Блок 5) прошли.")

@@ -197,12 +197,26 @@ def track_avg_metrics(path, role, is_stereo_capable=True, allow_reverb=True):
     # присутствует ли она ВЕЗДЕ (настоящая сетевая наводка) или только в
     # части трека (монтажная вставка/артефакт) — whole-track проверка выше
     # этого не различает, только даёт факт "наводка есть где-то".
+    # БАГ (найден код-ревью, исправлен): раньше notable_hum_windows строился
+    # без вызова refine_narrowband_freq вовсе — тот же фильтр
+    # (stability_score>=3.0), что и whole-track путь выше, но без
+    # уточнения частоты. Два списка одного детектора несли разные наборы
+    # ключей (freq_hz_refined только в hum_candidates), и именно для
+    # оконного пути — где наводка присутствует лишь в части трека — грубая
+    # ~11Гц частота STFT-бина уходила в measurements.json без уточнения.
+    # Уточняем по СЕГМЕНТУ этого конкретного окна, не по всему треку — так
+    # частота отражает именно то, что наблюдалось в этом окне, тот же
+    # принцип, что и у whole-track уточнения (там сегмент — весь трек).
     hum_windows = noise.find_persistent_narrowband_windowed(mono, sr, win_s=DIAG_WINDOW_S)
-    notable_hum_windows = [
-        dict(t_start=w["t_start"], t_end=w["t_end"],
-             candidates=[c for c in w["candidates"] if c["stability_score"] >= 3.0])
-        for w in hum_windows if any(c["stability_score"] >= 3.0 for c in w["candidates"])
-    ]
+    notable_hum_windows = []
+    for w in hum_windows:
+        notable_in_window = [c for c in w["candidates"] if c["stability_score"] >= 3.0]
+        if not notable_in_window:
+            continue
+        seg = mono[int(w["t_start"] * sr):int(w["t_end"] * sr)]
+        for c in notable_in_window:
+            c["freq_hz_refined"] = noise.refine_narrowband_freq(seg, sr, c["freq_hz"])
+        notable_hum_windows.append(dict(t_start=w["t_start"], t_end=w["t_end"], candidates=notable_in_window))
     if notable_hum_windows:
         diagnostics["hum_windowed"] = notable_hum_windows
 

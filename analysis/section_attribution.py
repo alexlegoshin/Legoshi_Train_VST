@@ -64,7 +64,19 @@ def worst_section(section_medians: dict, zone) -> tuple:
     """Среди медиан по секциям для одной метрики — какая секция дальше
     всего от зоны «нравится» (см. verdict.delta_to_zone). Возвращает
     (label, median, delta) либо (None, None, None), если зона без
-    числового диапазона или секций нет."""
+    числового диапазона, секций нет, или (БАГ, найден код-ревью,
+    исправлен) КАЖДАЯ секция по отдельности формально внутри зоны
+    (delta_to_zone == 0.0 у всех) — раньше в этом случае функция всё
+    равно возвращала первую по порядку секцию как «худшую» с delta=0.0
+    (worst_delta инициализировался None и первый d==0.0 проходил
+    проверку `worst_delta is None or ...`), хотя «худшей» на деле нет:
+    verdict.py считает медиану по ВСЕМ сырым window-значениям для
+    итогового статуса зоны, а эта функция группирует окна СНАЧАЛА по
+    секциям и берёт медиану ВНУТРИ каждой — две агрегации могут
+    расходиться, и общий вердикт может быть OUT_OF_ZONE/BORDERLINE, даже
+    когда каждая секция по отдельности в норме. Указывать в такой
+    ситуации конкретную секцию как источник проблемы — вводит в
+    заблуждение."""
     from analysis.verdict import delta_to_zone
 
     if not section_medians:
@@ -74,6 +86,8 @@ def worst_section(section_medians: dict, zone) -> tuple:
         d = delta_to_zone(val, zone)
         if d is None:
             return None, None, None  # зона без диапазона — дельта не определена ни для одной секции
+        if d == 0.0:
+            continue  # эта секция сама по себе в зоне — не кандидат в "худшие"
         if worst_delta is None or abs(d) > abs(worst_delta):
             worst_label, worst_val, worst_delta = label, val, d
     return worst_label, worst_val, worst_delta

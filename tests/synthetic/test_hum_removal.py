@@ -124,6 +124,34 @@ def test_engine_diagnostics_carries_refined_frequency(tmp_path):
         f"уточнённая частота в diagnostics = {top['freq_hz_refined']:.2f}Гц, ожидали ~50.0")
 
 
+def test_engine_diagnostics_hum_windowed_carries_refined_frequency(tmp_path):
+    """Регрессия (найдена код-ревью): diagnostics["hum_windowed"] строился
+    тем же фильтром stability_score>=3.0, что и diagnostics["hum_candidates"],
+    но БЕЗ вызова refine_narrowband_freq — оконный путь (Блок 2, среднее
+    окно), созданный именно для локализации гула, присутствующего лишь в
+    части трека, нёс только грубую ~11Гц частоту STFT-бина. Сигнал длиной
+    20с — заведомо больше DIAG_WINDOW_S=15с, чтобы реально получить хотя бы
+    одно полное окно."""
+    import soundfile as sf
+    from analysis import engine
+
+    x = _make_signal(hum_freq=50.0, dur_s=20.0)
+    path = tmp_path / "hum_windowed_test.wav"
+    sf.write(str(path), np.column_stack([x, x]), SR, subtype="FLOAT")
+
+    _, _, diagnostics = engine.track_avg_metrics(path, "mix")
+    assert "hum_windowed" in diagnostics, "гул на 50Гц должен быть виден и в оконной диагностике"
+    found = False
+    for window in diagnostics["hum_windowed"]:
+        for c in window["candidates"]:
+            if abs(c["freq_hz"] - 50.0) < 10:
+                assert "freq_hz_refined" in c, "оконные кандидаты обязаны нести уточнённую частоту, не только сырую"
+                assert abs(c["freq_hz_refined"] - 50.0) < 1.0, (
+                    f"уточнённая частота в hum_windowed = {c['freq_hz_refined']:.2f}Гц, ожидали ~50.0")
+                found = True
+    assert found, "ни одно окно не нашло кандидата рядом с 50Гц"
+
+
 def test_refine_freq_uses_whole_track_not_just_leading_prefix():
     """Регрессия (найдена код-ревью): np.fft.rfft(mono, n=n_fft) при
     len(mono) > n_fft ОБРЕЗАЕТ вход до первых n_fft сэмплов (~5.94с при
@@ -160,4 +188,6 @@ if __name__ == "__main__":
     import tempfile
     with tempfile.TemporaryDirectory() as d:
         test_engine_diagnostics_carries_refined_frequency(Path(d))
+    with tempfile.TemporaryDirectory() as d:
+        test_engine_diagnostics_hum_windowed_carries_refined_frequency(Path(d))
     print("Все тесты устранения гула (Блок 2) прошли.")
