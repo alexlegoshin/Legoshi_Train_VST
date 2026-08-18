@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import numpy as np
 import soundfile as sf
 
-from analysis.build_interference_matrix import build_matrix, summarize
+from analysis.build_interference_matrix import _measure, build_matrix, summarize
 from analysis.interventions import MOVES
 from analysis.verdict import load_preset
 
@@ -66,6 +66,36 @@ def test_build_matrix_skips_roles_without_zones(tmp_path):
     assert rows == []
 
 
+def _make_quiet_mix(seconds=8.0, seed=0):
+    """~-60дБФС сырого RMS — заведомо ниже ENERGY_GATE_DBFS (-45), но
+    выше него после нормализации к -18 LUFS (типичная громкость
+    неразведённого стема, roadmap.md код-ревью)."""
+    rng = np.random.default_rng(seed)
+    n = int(seconds * SR)
+    t = np.arange(n) / SR
+    x = (0.001 * np.sin(2 * np.pi * 220 * t) + 0.0003 * np.sin(2 * np.pi * 3000 * t)
+         + 0.0001 * rng.standard_normal(n))
+    return np.column_stack([x, x])
+
+
+def test_measure_normalizes_quiet_track_before_energy_gate(tmp_path):
+    """БАГ (код-ревью, исправлен): _measure звал window_metrics без
+    mix_gain_db (дефолт 0.0) — энергогейт резал окна СЫРОГО тихого
+    сигнала целиком (wdf — пустой DataFrame без единой строки), все
+    оконные метрики зоны пропадали молча. band_frac_lowmid — метрика,
+    которая существует ТОЛЬКО в window_metrics (track_avg даёт
+    одноимённую, но с суффиксом _median, см. spectral.analyze_file) —
+    чистый маркер того, что окна вообще прошли гейт."""
+    quiet = _make_quiet_mix()
+    path = tmp_path / "quiet_mix.wav"
+    sf.write(str(path), quiet, SR, subtype="FLOAT")
+
+    out = _measure(path, "mix")
+    assert ("band_frac_lowmid", "mix") in out, (
+        "ни одной оконной метрики после _measure на тихом сыром треке — "
+        "похоже, энергогейт снова режет ненормализованный сигнал (regression)")
+
+
 if __name__ == "__main__":
     import tempfile
     test_summarize_takes_median_across_tracks()
@@ -73,4 +103,6 @@ if __name__ == "__main__":
         test_build_matrix_produces_rows_for_zone_relevant_metrics(Path(tmp))
     with tempfile.TemporaryDirectory() as tmp:
         test_build_matrix_skips_roles_without_zones(Path(tmp))
+    with tempfile.TemporaryDirectory() as tmp:
+        test_measure_normalizes_quiet_track_before_energy_gate(Path(tmp))
     print("Все тесты пламбинга build_interference_matrix (Блок 6) прошли.")

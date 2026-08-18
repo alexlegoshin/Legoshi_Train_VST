@@ -40,11 +40,26 @@ def _measure(path: Path, role: str) -> dict:
     """Тот же набор ключей (metric, source), что ждёт verdict.evaluate() —
     track_avg-метрики как есть + медиана по окнам для window-метрик.
     allow_reverb=False и do_real_psychoacoustics=False намеренно — только
-    быстрый путь (roadmap.md, Блок 6)."""
+    быстрый путь (roadmap.md, Блок 6).
+
+    БАГ (найден код-ревью, исправлен): window_metrics раньше звался без
+    mix_gain_db (дефолт 0.0) — энергогейт (ENERGY_GATE_DBFS=-45дБФС)
+    резал окна на СЫРОМ, ненормализованном сигнале. В боевом пайплайне
+    (orchestrate.analyze_all_sources) каждая роль всегда получает
+    mix_gain_db, приводящий уровень к -18 LUFS — без этого тихий сырой
+    стем (обычное дело для неразведённого материала) мог потерять ВСЕ
+    оконные метрики зоны молча (wdf — пустой DataFrame без единой
+    строки, цикл ниже просто ничего не добавляет). build_matrix меряет
+    (роль, путь) изолированно, без привязки к миксу той же песни —
+    ближайший доступный аналог "привести к -18 LUFS" — собственная
+    LUFS этого же файла (тот же приём, что и у track_avg_metrics для
+    psychoacoustic.quick_metrics)."""
     m_avg, vocal_frames, _diag = engine.track_avg_metrics(
         path, role, is_stereo_capable=(role == "mix"), allow_reverb=False)
     mono, sr, _ = engine.load_mono(path)
-    wdf = engine.window_metrics(mono, sr, role, do_real_psychoacoustics=False)
+    own_lufs = m_avg.get(("integrated_lufs", role))
+    gain_db = (engine.TARGET_LUFS - float(own_lufs)) if own_lufs is not None else 0.0
+    wdf = engine.window_metrics(mono, sr, role, mix_gain_db=gain_db, do_real_psychoacoustics=False)
     out = dict(m_avg)
     for col in wdf.columns:
         if col in ("t_start", "t_end", "rms_dbfs"):
