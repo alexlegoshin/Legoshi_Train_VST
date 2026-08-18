@@ -149,6 +149,12 @@ class Verdict:
     status: Status
     fraction_in_zone: Optional[float] = None  # только для window-измерений
     closer_to: Optional[str] = None            # "нравится"/"не нравится" — при BORDERLINE
+    delta_to_zone: Optional[float] = None      # ТЗ-05 Блок 5: сколько и в какую
+                                                  # сторону сдвинуть измеренное,
+                                                  # чтобы войти в зону «нравится».
+                                                  # 0.0 внутри зоны, None — где
+                                                  # числовой зоны нет (direction_only,
+                                                  # NO_ZONE) или нет измерения
 
 
 def _as_scalar_and_fraction(value, zone: MetricZone):
@@ -200,6 +206,22 @@ def _classify(measured: float, zone: MetricZone) -> tuple[Status, Optional[str]]
     return Status.BORDERLINE, None
 
 
+def delta_to_zone(measured: float, zone: MetricZone) -> Optional[float]:
+    """ТЗ-05 Блок 5: численная дельта до цели, не только статус вне/внутри
+    зоны. Знак — куда сдвигать: положительная дельта значит "подними
+    измеренное на столько", отрицательная — "опусти". 0.0, если уже внутри
+    зоны. None для зон без числового диапазона (direction_only, NO_ZONE) —
+    там "дельта" не определена, только направление."""
+    if zone.liked_lo is None or zone.liked_hi is None:
+        return None
+    lo, hi = zone.liked_lo, zone.liked_hi
+    if measured < lo:
+        return lo - measured
+    if measured > hi:
+        return hi - measured
+    return 0.0
+
+
 def evaluate(measurements: dict, preset: Optional[list[MetricZone]] = None) -> list[Verdict]:
     """measurements: {(metric, source): значение}. Значение — число
     (среднее по треку) или pandas.Series с сырыми значениями по окнам
@@ -225,8 +247,9 @@ def evaluate(measurements: dict, preset: Optional[list[MetricZone]] = None) -> l
                                 None, zone, Status.NO_DATA))
             continue
         status, closer_to = _classify(measured, zone)
+        delta = delta_to_zone(measured, zone)
         out.append(Verdict(zone.metric, zone.source, zone.axis, zone.granularity,
-                            measured, zone, status, frac, closer_to))
+                            measured, zone, status, frac, closer_to, delta))
     return out
 
 
@@ -240,6 +263,10 @@ def format_report(verdicts: list[Verdict]) -> str:
         status_txt = v.status.value
         if v.status is Status.BORDERLINE and v.closer_to:
             status_txt += f" (ближе к «{v.closer_to}»)"
+        # ТЗ-05 Блок 5: дельта только там, где она содержательна — вне зоны
+        # (не 0.0, не None): "нужно +Xед" — сколько и куда сдвинуть
+        if v.delta_to_zone:
+            status_txt += f" (дельта {v.delta_to_zone:+.3g})"
         lines.append(f"{v.source:<10}{v.metric:<28}{v.axis:<38}{val:>12}  {status_txt}  ({rel}, {ev})")
     return "\n".join(lines)
 

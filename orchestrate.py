@@ -40,7 +40,7 @@ import soundfile as sf
 
 import itertools
 
-from analysis import alignment, engine, recommendations, sections
+from analysis import alignment, engine, recommendations, section_attribution, sections
 from analysis.metrics import layering, masking_erb
 from analysis.verdict import evaluate, format_report, load_preset, Reliability, Status
 
@@ -291,6 +291,7 @@ def analyze_all_sources(mix_path: Path, stems: dict, deep_psychoacoustics: bool,
     mix_gain_db = engine.get_mix_gain_db(mix_path)
     track_mono_by_role = {}  # Блок 4: {role: mono} без mix — вход masking_erb.analyze_group
     sr_masking = None
+    section_profile_for_attribution = None  # Блок 5: границы секций с mix, применимы к любой роли
 
     sources = {"mix": mix_path, **stems}
     for role, path in sources.items():
@@ -315,6 +316,7 @@ def analyze_all_sources(mix_path: Path, stems: dict, deep_psychoacoustics: bool,
                 measurements[("section_range_db", "mix")] = arc["section_range_db"]
                 diag["section_profile"] = profile
                 diag["section_source"] = section_source
+                section_profile_for_attribution = profile
             except Exception as e:
                 diag["section_analysis_error"] = str(e)
 
@@ -337,6 +339,16 @@ def analyze_all_sources(mix_path: Path, stems: dict, deep_psychoacoustics: bool,
             if wdf[col].notna().sum() == 0:
                 continue
             measurements[(col, role)] = wdf[col]
+
+        # Блок 5: атрибуция по (роль, секция) — переиспользует уже
+        # посчитанные wdf (window-метрики этой роли) и section_profile
+        # (границы с mix, общая временная ось). Только window-метрики —
+        # track_avg метрики уже одно число на весь трек, атрибутировать
+        # по секциям нечего.
+        if section_profile_for_attribution is not None and len(section_profile_for_attribution):
+            sec_medians = section_attribution.attribute_by_section(wdf, section_profile_for_attribution)
+            if sec_medians:
+                diag["section_medians"] = sec_medians
 
         # ТЗ-05 Б8: formant_f3_hz — зона в пресете (vocals/window), но
         # раньше нигде не вызывалась — обнаружено тестом на соответствие
@@ -602,6 +614,27 @@ def write_report(out_dir: Path, track_name: str, measurements: dict, verdicts, d
         diag_lines.append("Рекомендации по очистке (Блок 2, без выбора — не применяется автоматически):")
         for r in restore_recs:
             diag_lines.append(f"  {r.text} (уверенность {r.confidence:.0%})")
+        diag_lines.append("")
+
+    # Блок 5: для метрик вне зоны — какая секция сильнее всего тянет от
+    # зоны, не таймкод (roadmap.md, Блок 5 — окно не даёт чёткой границы
+    # события). Только window-granularity зоны — track_avg метрики уже
+    # одно число на весь трек, секций там не считалось.
+    attribution_lines = []
+    for v in verdicts:
+        if v.status not in (Status.OUT_OF_ZONE, Status.BORDERLINE) or v.granularity != "window":
+            continue
+        sec_medians = (diagnostics or {}).get(v.source, {}).get("section_medians", {}).get(v.metric)
+        if not sec_medians:
+            continue
+        label, val, delta = section_attribution.worst_section(sec_medians, v.zone)
+        if label is None:
+            continue
+        attribution_lines.append(f"  {v.source}/{v.metric}: хуже всего в «{label}» "
+                                  f"({val:.3g}, дельта {delta:+.3g})")
+    if attribution_lines:
+        diag_lines.append("Атрибуция по секциям (Блок 5, не таймкод — окно не даёт чёткой границы):")
+        diag_lines.extend(attribution_lines)
         diag_lines.append("")
 
     # ТЗ-05 Д: явный итоговый блок "что не измерено и почему" — часть
