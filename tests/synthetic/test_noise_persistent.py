@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import numpy as np
 
-from analysis.metrics.noise import find_persistent_narrowband
+from analysis.metrics.noise import find_persistent_narrowband, find_persistent_narrowband_windowed
 
 SR = 44100
 
@@ -57,7 +57,25 @@ def test_no_false_positive_on_clean_busy_mix():
     assert len(candidates) == 0, f"без реальной наводки нашли {len(candidates)} ложных кандидатов"
 
 
+def test_windowed_detector_localizes_hum_to_correct_window():
+    """Блок 2 (среднее окно): наводка только в первой половине файла —
+    оконный детектор должен видеть, что она есть в раннем окне и её нет в
+    позднем, а не только факт "где-то в треке есть" (whole-track версия)."""
+    with_hum = make_hum_plus_busy_mix(dur_s=20.0, hum_amp=0.01, seed=0)
+    without_hum = make_hum_plus_busy_mix(dur_s=20.0, hum_amp=0.0, seed=1)
+    x = np.concatenate([with_hum, without_hum])
+    windows = find_persistent_narrowband_windowed(x, SR, win_s=15.0, f_lo=30, f_hi=1000)
+    assert len(windows) == 3  # 0-15, 15-30, 30-40 (10с хвост, тоже окно)
+    first_freqs = [c["freq_hz"] for c in windows[0]["candidates"]]
+    assert any(abs(f - 108.0) < 5 for f in first_freqs), \
+        f"первое окно (0-15с, целиком внутри наводки) должно найти 108Гц, получили {first_freqs}"
+    last_freqs = [c["freq_hz"] for c in windows[-1]["candidates"]]
+    assert not any(abs(f - 108.0) < 5 for f in last_freqs), \
+        f"последнее окно (30-40с, целиком без наводки) не должно найти 108Гц, получили {last_freqs}"
+
+
 if __name__ == "__main__":
     test_quiet_frame_detector_finds_hum()
     test_no_false_positive_on_clean_busy_mix()
+    test_windowed_detector_localizes_hum_to_correct_window()
     print("Все синтетические тесты §4.10 детектора наводок прошли.")

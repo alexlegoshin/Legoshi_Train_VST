@@ -20,6 +20,11 @@ from analysis.metrics import pitch_vocal, vocal_texture, noise
 
 WIN_S = 4.0
 HOP_S = 1.0
+DIAG_WINDOW_S = 15.0  # Блок 2 (среднее окно): гул/реверб-диагностика по
+                        # ~15с интервалам — отдельно от узкого (клиппинг,
+                        # сэмпл-точность) и от WIN_S/HOP_S (вкусовые
+                        # метрики секций). Эвристический размер, не
+                        # откалиброван
 ENERGY_GATE_DBFS = -45.0
 LOWPASS_HZ = 10000.0  # НЧ-фильтр перед спектральными метриками на разделённых источниках —
                        # у Demucs (и у грубо сведённых сумм стемов) шум/артефакты сильнее всего наверху
@@ -188,6 +193,19 @@ def track_avg_metrics(path, role, is_stereo_capable=True, allow_reverb=True):
     if notable_hum:
         diagnostics["hum_candidates"] = notable_hum
 
+    # Блок 2 (среднее окно): та же наводка, но по ~15с интервалам — видно,
+    # присутствует ли она ВЕЗДЕ (настоящая сетевая наводка) или только в
+    # части трека (монтажная вставка/артефакт) — whole-track проверка выше
+    # этого не различает, только даёт факт "наводка есть где-то".
+    hum_windows = noise.find_persistent_narrowband_windowed(mono, sr, win_s=DIAG_WINDOW_S)
+    notable_hum_windows = [
+        dict(t_start=w["t_start"], t_end=w["t_end"],
+             candidates=[c for c in w["candidates"] if c["stability_score"] >= 3.0])
+        for w in hum_windows if any(c["stability_score"] >= 3.0 for c in w["candidates"])
+    ]
+    if notable_hum_windows:
+        diagnostics["hum_windowed"] = notable_hum_windows
+
     # ТЗ-05 А1: psychoacoustic.quick_metrics считает Zwicker loudness/DIN
     # sharpness/tonality — эти величины частично зависят от абсолютного
     # уровня входного сигнала (не чистые тембровые отношения, как
@@ -211,8 +229,16 @@ def track_avg_metrics(path, role, is_stereo_capable=True, allow_reverb=True):
 
     if allow_reverb:
         try:
-            d5, _ = reverb.analyze_file(path)
+            d5, reverb_df = reverb.analyze_file(path)
             out.update({k: d5[k] for k in d5 if k not in ("path",)})
+            # Блок 2 (среднее окно): группировка уже посчитанных per-onset
+            # значений по позиции на треке — не новая метрика, только
+            # локализация. Локальный выброс (напр. rt60 только в одном
+            # интервале) — кандидат в "бликид/чужая вставка", не общая
+            # акустика трека (следующий пункт roadmap.md, Блок 2)
+            reverb_windows = reverb.windowed_summary(reverb_df, win_s=DIAG_WINDOW_S)
+            if reverb_windows:
+                diagnostics["reverb_windowed"] = reverb_windows
         except Exception:
             pass
     else:

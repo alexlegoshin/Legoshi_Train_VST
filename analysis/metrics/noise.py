@@ -86,6 +86,30 @@ def find_persistent_narrowband(mono, sr, f_lo=30, f_hi=1000, top_n=10, quiet_per
     return candidates[:top_n]
 
 
+def find_persistent_narrowband_windowed(mono, sr, win_s=15.0, f_lo=30, f_hi=1000,
+                                          top_n=5, quiet_percentile=20):
+    """Блок 2 (среднее окно): та же логика find_persistent_narrowband, но по
+    неперекрывающимся окнам ~win_s секунд, а не по всему треку разом.
+    Настоящая сетевая наводка присутствует ВЕЗДЕ — если кандидат стабилен
+    только в части окон, это, скорее, монтажная вставка/артефакт одного
+    участка, не общая наводка дорожки (см. roadmap.md, Блок 2). win_s — то
+    же самое, что CLICK_MAX_S у клиппинга: эвристический выбор, не
+    откалиброван на реальных данных."""
+    n = len(mono)
+    win_n = int(win_s * sr)
+    windows = []
+    for start in range(0, n, win_n):
+        end = min(start + win_n, n)
+        if end - start < sr:  # меньше секунды — хвост, не окно
+            continue
+        seg = mono[start:end]
+        candidates = find_persistent_narrowband(seg, sr, f_lo=f_lo, f_hi=f_hi,
+                                                  top_n=top_n, quiet_percentile=quiet_percentile)
+        windows.append(dict(t_start=round(start / sr, 2), t_end=round(end / sr, 2),
+                             candidates=candidates))
+    return windows
+
+
 def refine_narrowband_freq(mono, sr, f_approx, search_hz=15.0, n_fft=1 << 18):
     """Блок 2 (Этап 1, устранение гула): find_persistent_narrowband даёт
     частоту с точностью STFT-бина детектора (~11Гц при N_FFT=4096) — для

@@ -98,6 +98,31 @@ def predelay_estimate(x_tail, sr, direct_thresh_db=-20):
     return float(below[0] / sr) if len(below) else np.nan
 
 
+def windowed_summary(df, win_s=15.0):
+    """Блок 2 (среднее окно): группировка per-onset строк analyze_file по
+    позиции на треке (~win_s секунд), не по всему треку разом — не новая
+    метрика, просто агрегация уже посчитанных per-onset значений. Локальный
+    выброс (напр. rt60 аномально выше, чем в остальных окнах) — признак
+    бликида/чужой вставки на конкретном участке, не общей акустики трека
+    (roadmap.md, Блок 2, следующий пункт «эхо/бликид vs осознанный реверб»).
+    Окна без изолированных onset'ов просто отсутствуют в результате —
+    честная нехватка данных на тихом участке, не выдуманное значение."""
+    if df is None or not len(df):
+        return []
+    win_idx = (df["onset_s"] // win_s).astype(int)
+    windows = []
+    for idx, sub in df.groupby(win_idx):
+        def med(col):
+            return float(sub[col].median()) if sub[col].notna().any() else np.nan
+        windows.append(dict(
+            t_start=float(idx * win_s), t_end=float((idx + 1) * win_s), n_onsets=len(sub),
+            rt60_s_median=med("rt60_s"), edt_s_median=med("edt_s"),
+            c50_db_median=med("c50_db"), c80_db_median=med("c80_db"),
+            drr_db_median=med("drr_db"),
+        ))
+    return windows
+
+
 def analyze_file(path, sr_expected=44100, min_gap_s=0.3, tail_window_s=0.5):
     import soundfile as sf
     data, sr = sf.read(str(path), dtype="float64", always_2d=True)

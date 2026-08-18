@@ -483,6 +483,14 @@ def write_report(out_dir: Path, track_name: str, measurements: dict, verdicts, d
                                     f"(score={c['stability_score']:.1f})"
                                     for c in d["hum_candidates"][:5])
                 facts.append(f"возможная наводка: {hum_str}")
+            if d.get("hum_windowed"):
+                hw = d["hum_windowed"]
+                facts.append(f"наводка присутствует не по всей дорожке, а в {len(hw)} "
+                             f"интервал(ах) по ~{engine.DIAG_WINDOW_S:.0f}с (детали — measurements.json)")
+            if d.get("reverb_windowed"):
+                facts.append(f"реверб-диагностика по {len(d['reverb_windowed'])} интервал(ам) "
+                             f"по ~{engine.DIAG_WINDOW_S:.0f}с (детали — measurements.json, "
+                             f"для отделения бликида/вставки от общей акустики — следующий шаг Блока 2)")
             if d.get("reverb_skipped_reason"):
                 facts.append(f"реверб не считался: {d['reverb_skipped_reason']}")
             if d.get("vocal_analysis_error"):
