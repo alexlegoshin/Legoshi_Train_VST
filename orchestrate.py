@@ -41,7 +41,7 @@ import soundfile as sf
 import itertools
 
 from analysis import alignment, engine, recommendations, sections
-from analysis.metrics import layering
+from analysis.metrics import layering, masking_erb
 from analysis.verdict import evaluate, format_report, load_preset, Reliability, Status
 
 ROOT = Path(__file__).resolve().parent
@@ -289,6 +289,8 @@ def analyze_all_sources(mix_path: Path, stems: dict, deep_psychoacoustics: bool,
     measurements = {}
     all_diagnostics = {}
     mix_gain_db = engine.get_mix_gain_db(mix_path)
+    track_mono_by_role = {}  # Блок 4: {role: mono} без mix — вход masking_erb.analyze_group
+    sr_masking = None
 
     sources = {"mix": mix_path, **stems}
     for role, path in sources.items():
@@ -317,6 +319,13 @@ def analyze_all_sources(mix_path: Path, stems: dict, deep_psychoacoustics: bool,
                 diag["section_analysis_error"] = str(e)
 
         mono, sr, _ = engine.load_mono(path)
+        if role != "mix":
+            # Блок 4: mix — сумма всего, маскирование её самой собой не
+            # осмыслено, нужны только отдельные источники. mono уже
+            # загружен здесь для window_metrics — переиспользуем, не грузим
+            # файл ещё раз.
+            track_mono_by_role[role] = mono
+            sr_masking = sr
         f0_df = vocal_frames.get("f0") if role == "vocals" else None
         notes_df = vocal_frames.get("notes") if role == "vocals" else None
         wdf = engine.window_metrics(mono, sr, role, mix_gain_db=mix_gain_db,
@@ -337,6 +346,22 @@ def analyze_all_sources(mix_path: Path, stems: dict, deep_psychoacoustics: bool,
             fdf = engine.formant_series(mono, sr, f0_df)
             if len(fdf) and fdf["f3_hz"].notna().sum() > 0:
                 measurements[("formant_f3_hz", role)] = fdf["f3_hz"]
+
+    # Блок 4 (частотные конфликты, измерение): masking_erb.analyze_group уже
+    # принимает произвольное число дорожек — просто интеграция. Требует
+    # общей временной оси (см. docstring analyze_group) — оба режима это
+    # дают: Demucs (режим 1) разделяет на месте без сдвига, трек-аут
+    # (режим 2) уже выровнен по главному миксу в align_and_sum_tracks.
+    if len(track_mono_by_role) >= 2:
+        try:
+            masking_result = masking_erb.analyze_group(track_mono_by_role, sr_masking)
+            for role, aud in masking_result["audibility"].items():
+                all_diagnostics.setdefault(role, {})["audibility"] = aud
+            attribution_df = masking_result["attribution"]
+            if len(attribution_df):
+                all_diagnostics["_masking"] = {"attribution": attribution_df.to_dict(orient="records")}
+        except Exception as e:
+            all_diagnostics["_masking"] = {"error": str(e)}
 
     return measurements, all_diagnostics
 
@@ -451,6 +476,7 @@ def write_report(out_dir: Path, track_name: str, measurements: dict, verdicts, d
     # виде, не только в человекочитаемом тексте.
     run_meta_full = (diagnostics or {}).pop("_run", None)
     trackout_diag = (diagnostics or {}).pop("_trackout", {})
+    masking_diag = (diagnostics or {}).pop("_masking", {})
     excluded_tracks = trackout_diag.get("excluded_unaligned_tracks", {})
     input_formats = trackout_diag.get("input_formats", {})
     if input_formats:
@@ -493,6 +519,20 @@ def write_report(out_dir: Path, track_name: str, measurements: dict, verdicts, d
                                f"section_range_db = {measurements.get(('section_range_db','mix'), float('nan')):.2f}дБ")
         diag_lines.append("")
 
+    # Блок 4 (частотные конфликты, измерение): кто кого маскирует чаще всего
+    # — не рекомендация (см. roadmap.md, Блок 7/8), просто факт по паре
+    if masking_diag.get("error"):
+        diag_lines.append(f"Маскирование (Блок 4): не удалось измерить ({masking_diag['error']})\n")
+    elif masking_diag.get("attribution"):
+        diag_lines.append("Маскирование между дорожками (Блок 4, ERB, доля замаскированных "
+                            "TF-клеток по паре, только пары с долей >5%):")
+        for row in sorted(masking_diag["attribution"], key=lambda r: -r["fraction_of_masked_cells"]):
+            if row["fraction_of_masked_cells"] <= 0.05:
+                continue
+            diag_lines.append(f"  {row['masker']} маскирует {row['masked']}: "
+                               f"{row['fraction_of_masked_cells']:.0%} замаскированных клеток")
+        diag_lines.append("")
+
     if diagnostics:
         diag_lines.append("Что обнаружено по источникам (не метрики, факты о входе):")
         for role, d in diagnostics.items():
@@ -503,6 +543,9 @@ def write_report(out_dir: Path, track_name: str, measurements: dict, verdicts, d
                 facts.append(f"инвалидированы полосы выше среза: {', '.join(d['codec_cutoff_invalidated_keys'])}")
             if d.get("dual_mono"):
                 facts.append("дуал-моно (каналы идентичны — не настоящее стерео)")
+            if "audibility" in d:
+                facts.append(f"audibility {d['audibility']:.0%} "
+                             f"(Блок 4, доля TF-клеток, где источник слышен поверх остальных)")
             if d.get("clipped"):
                 cd = d.get("clipping_detail")
                 if cd:
@@ -606,6 +649,8 @@ def write_report(out_dir: Path, track_name: str, measurements: dict, verdicts, d
         output_json["run"] = run_meta_full
     if trackout_diag:
         output_json["trackout"] = trackout_diag
+    if masking_diag:
+        output_json["masking"] = masking_diag
     if section_profile is not None and len(section_profile):
         output_json["section_profile"] = {
             "source": section_source,
