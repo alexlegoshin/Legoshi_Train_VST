@@ -124,11 +124,39 @@ def test_engine_diagnostics_carries_refined_frequency(tmp_path):
         f"уточнённая частота в diagnostics = {top['freq_hz_refined']:.2f}Гц, ожидали ~50.0")
 
 
+def test_refine_freq_uses_whole_track_not_just_leading_prefix():
+    """Регрессия (найдена код-ревью): np.fft.rfft(mono, n=n_fft) при
+    len(mono) > n_fft ОБРЕЗАЕТ вход до первых n_fft сэмплов (~5.94с при
+    дефолтном n_fft=2**18), а не дополняет нулями — для гула, реально
+    присутствующего только в поздней части длинного трека, уточнение
+    находило бы совсем не ту частоту, если бы искало по обрезанному
+    префиксу. "Отвлекающий" тон 45Гц целиком лежит ДО границы обрезки
+    (~5.94с), настоящая наводка 50Гц начинается сразу ПОСЛЕ и длится
+    дольше отвлекающего — так что при старом баге (анализ только первых
+    ~5.94с) единственное, что вообще видно детектору, это отвлекающий
+    тон; при верном поведении (анализ всего трека) 50Гц перевешивает и по
+    длительности, и по суммарной энергии."""
+    hum_start_s, total_s = 6.0, 20.0  # 6.0с > n_fft/sr (~5.9457с) — граница обрезки строго внутри отвлекающего тона
+    n = int(total_s * SR)
+    t = np.arange(n) / SR
+    x = np.zeros(n)
+    before = t < hum_start_s
+    x[before] += 0.05 * np.sin(2 * np.pi * 45.0 * t[before])
+    after = ~before
+    x[after] += 0.05 * np.sin(2 * np.pi * 50.0 * t[after])
+
+    refined = refine_narrowband_freq(x, SR, f_approx=50.0, search_hz=15.0)
+    assert abs(refined - 50.0) < 1.0, (
+        f"должен найти настоящую наводку 50Гц по всему треку, получили {refined:.2f}Гц "
+        f"(45.0 означало бы, что уточнение до сих пор смотрит только на обрезанный префикс)")
+
+
 if __name__ == "__main__":
     test_refine_freq_corrects_stft_bin_quantization()
     test_notch_without_refinement_barely_touches_hum()
     test_full_pipeline_detect_refine_remove()
     test_low_stability_candidate_not_removed()
+    test_refine_freq_uses_whole_track_not_just_leading_prefix()
     import tempfile
     with tempfile.TemporaryDirectory() as d:
         test_engine_diagnostics_carries_refined_frequency(Path(d))

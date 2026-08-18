@@ -6,6 +6,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+import pandas as pd
+
 from analysis.recommendations import (
     _best_covered_move, _flag_opposing_conflicts, _layering_recommendation,
     all_taste_recommendations, taste_recommendation_for_verdict,
@@ -136,6 +138,42 @@ def test_all_taste_recommendations_sorts_by_section_then_confidence():
     assert recs[0].confidence >= recs[1].confidence
 
 
+def test_all_taste_recommendations_sorts_correctly_even_after_diagnostics_mutated():
+    """Регрессия (найдена код-ревью): write_report вынимает
+    diagnostics['mix']['section_profile'] через pop() для отдельной
+    JSON-сериализации ДО вызова all_taste_recommendations — если функция
+    ищет section_profile только внутри diagnostics, к этому моменту его
+    там уже нет и двойная сортировка по таймлайну молча вырождается в
+    сортировку только по уверенности. Явный параметр section_profile
+    должен обходить эту мутацию."""
+    zone_a = MetricZone(metric="harshness", source="vocals", granularity="window",
+                         axis="ось", liked_lo=0.0, liked_hi=1.0, disliked_lo=2.0, disliked_hi=3.0)
+    zone_b = MetricZone(metric="band_frac_lowmid", source="drums", granularity="window",
+                         axis="ось", liked_lo=0.0, liked_hi=1.0, disliked_lo=2.0, disliked_hi=3.0)
+    verdicts = evaluate({("harshness", "vocals"): pd.Series([2.5, 2.6]),
+                          ("band_frac_lowmid", "drums"): pd.Series([2.5, 2.6])}, preset=[zone_a, zone_b])
+    diagnostics = {
+        "vocals": {"section_medians": {"harshness": {"припев": 2.6}}},
+        "drums": {"section_medians": {"band_frac_lowmid": {"куплет": 2.6}}},
+        "mix": {"section_profile": pd.DataFrame([
+            dict(section="куплет", start_s=0.0, end_s=20.0, level_rel_db=-1.0),
+            dict(section="припев", start_s=20.0, end_s=40.0, level_rel_db=2.0),
+        ])},
+    }
+    matrix = {
+        "bell_cut_presence": {"vocals::harshness": {"median_delta": -0.5, "n": 1}},
+        "bell_cut_lowmid": {"drums::band_frac_lowmid": {"median_delta": -0.5, "n": 1}},
+    }
+    # эмулируем то, что write_report делает ДО вызова all_taste_recommendations
+    section_profile = diagnostics["mix"].pop("section_profile", None)
+    assert "section_profile" not in diagnostics["mix"]  # подтверждаем, что мутация реально произошла
+
+    recs = all_taste_recommendations(verdicts, diagnostics, matrix, section_profile=section_profile)
+    assert len(recs) == 2
+    assert recs[0].section == "куплет"  # start_s=0.0 — раньше
+    assert recs[1].section == "припев"  # start_s=20.0 — позже
+
+
 if __name__ == "__main__":
     test_best_covered_move_picks_largest_correct_sign_among_candidates()
     test_best_covered_move_none_when_no_correct_sign_candidate()
@@ -148,4 +186,5 @@ if __name__ == "__main__":
     test_layering_recommendation_skips_error_pairs()
     test_flag_opposing_conflicts_marks_both_sides_same_role_only()
     test_all_taste_recommendations_sorts_by_section_then_confidence()
+    test_all_taste_recommendations_sorts_correctly_even_after_diagnostics_mutated()
     print("Все тесты вкусовых рекомендаций (Блок 7) прошли.")

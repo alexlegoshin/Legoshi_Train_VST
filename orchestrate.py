@@ -652,7 +652,13 @@ def write_report(out_dir: Path, track_name: str, measurements: dict, verdicts, d
     # вывода, НЕ заявка на проверенный совместный эффект (Блок 6 мерил
     # каждый ход отдельно, не комбинациями). Программа не применяет сама.
     interference_matrix = load_interference_matrix()
-    taste_recs = recommendations.all_taste_recommendations(verdicts, diagnostics or {}, interference_matrix)
+    # section_profile передаём явно (не через diagnostics) — он уже вынут
+    # из diagnostics['mix'] через pop() выше (строка ~526) для отдельной
+    # JSON-сериализации; без явной передачи all_taste_recommendations не
+    # нашёл бы его там и двойная сортировка по таймлайну молча ломалась
+    # (см. docstring all_taste_recommendations)
+    taste_recs = recommendations.all_taste_recommendations(
+        verdicts, diagnostics or {}, interference_matrix, section_profile=section_profile)
     if taste_recs:
         diag_lines.append("Рекомендации по вкусовым правкам (Блок 7, с выбором — "
                             "не применяется автоматически, стадии только для читаемости):")

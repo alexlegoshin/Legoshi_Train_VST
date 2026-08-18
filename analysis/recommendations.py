@@ -303,12 +303,24 @@ def _flag_opposing_conflicts(recs: list) -> None:
                         r.text += f" — КОНФЛИКТ с рекомендацией «{r.params['conflict_with']}» для этой же роли, реши сам"
 
 
-def all_taste_recommendations(verdicts: list, diagnostics: dict, interference_matrix: dict) -> list:
+def all_taste_recommendations(verdicts: list, diagnostics: dict, interference_matrix: dict,
+                               section_profile=None) -> list:
     """Полный список за один запуск (roadmap.md, Блок 7) — не одна правка
     за раз. Двойная сортировка: сначала по позиции на таймлайне (по
     старту секции, без секции — в конец), поверх — по убыванию
     уверенности. Плюс наложение дублей (Блок 3) — тот же список,
-    художественный выбор."""
+    художественный выбор.
+
+    section_profile — необязательно передать явно (DataFrame секций
+    mix). Если не передан, ищем в diagnostics['mix']['section_profile'] —
+    НО вызывающий код (orchestrate.write_report) может к этому моменту
+    уже вынуть этот ключ из diagnostics['mix'] через pop() для отдельной
+    JSON-сериализации (тот же объект, не копия — mutable). БАГ (найден
+    код-ревью, исправлен): раньше это было единственным способом получить
+    section_profile здесь, и он молча возвращал {} после pop() — двойная
+    сортировка по таймлайну вырождалась в сортировку только по
+    уверенности. Явный параметр — самый надёжный способ, не полагается на
+    то, что кто-то ещё не тронул diagnostics."""
     recs = []
     for v in verdicts:
         r = taste_recommendation_for_verdict(v, diagnostics, interference_matrix)
@@ -326,7 +338,8 @@ def all_taste_recommendations(verdicts: list, diagnostics: dict, interference_ma
     _flag_opposing_conflicts(recs)
 
     section_starts = {}
-    section_profile = ((diagnostics or {}).get("mix") or {}).get("section_profile")
+    if section_profile is None:
+        section_profile = ((diagnostics or {}).get("mix") or {}).get("section_profile")
     if section_profile is not None and len(section_profile):
         for _, row in section_profile.iterrows():
             label = row["section"] or f"{row['start_s']:.0f}-{row['end_s']:.0f}с"
