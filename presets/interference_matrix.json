@@ -1,0 +1,462 @@
+{
+  "bell_cut_lowmid": {
+    "mix::plr": {
+      "median_delta": 0.35874915745547487,
+      "n": 2
+    },
+    "mix::overall_ms_ratio": {
+      "median_delta": 0.0021306925087619666,
+      "n": 2
+    },
+    "mix::band_frac_air_median": {
+      "median_delta": 0.0006054954110058261,
+      "n": 2
+    },
+    "mix::spectral_slope_db_per_oct": {
+      "median_delta": 0.3235075271976444,
+      "n": 2
+    },
+    "mix::warmth_ratio": {
+      "median_delta": -5.520623552017712,
+      "n": 2
+    },
+    "vocals::harshness": {
+      "median_delta": 0.02623409147754799,
+      "n": 1
+    },
+    "bass::spectral_slope": {
+      "median_delta": 0.3198802495406188,
+      "n": 1
+    },
+    "bass::skewness": {
+      "median_delta": -0.30794552721525825,
+      "n": 1
+    },
+    "drums::band_frac_lowmid": {
+      "median_delta": -0.0009027993194368946,
+      "n": 1
+    },
+    "other::band_frac_low": {
+      "median_delta": 0.009608456303938702,
+      "n": 1
+    },
+    "other::spectral_slope": {
+      "median_delta": 0.3299246923961858,
+      "n": 1
+    }
+  },
+  "bell_boost_lowmid": {
+    "mix::plr": {
+      "median_delta": 0.5223150728571362,
+      "n": 2
+    },
+    "mix::overall_ms_ratio": {
+      "median_delta": -0.002081470782907796,
+      "n": 2
+    },
+    "mix::band_frac_air_median": {
+      "median_delta": -0.0005668700180761014,
+      "n": 2
+    },
+    "mix::spectral_slope_db_per_oct": {
+      "median_delta": -0.32450836817092465,
+      "n": 2
+    },
+    "mix::warmth_ratio": {
+      "median_delta": 10.242702133752545,
+      "n": 2
+    },
+    "vocals::harshness": {
+      "median_delta": -0.018723123409815433,
+      "n": 1
+    },
+    "bass::spectral_slope": {
+      "median_delta": -0.32126266737958,
+      "n": 1
+    },
+    "bass::skewness": {
+      "median_delta": 0.3203759296323714,
+      "n": 1
+    },
+    "drums::band_frac_lowmid": {
+      "median_delta": 0.0012916274107866452,
+      "n": 1
+    },
+    "other::band_frac_low": {
+      "median_delta": -0.006895969049424428,
+      "n": 1
+    },
+    "other::spectral_slope": {
+      "median_delta": -0.32994186917630053,
+      "n": 1
+    }
+  },
+  "bell_cut_presence": {
+    "mix::plr": {
+      "median_delta": 0.056923569376094996,
+      "n": 2
+    },
+    "mix::overall_ms_ratio": {
+      "median_delta": -0.006239604733288273,
+      "n": 2
+    },
+    "mix::band_frac_air_median": {
+      "median_delta": 4.6571740919820815e-06,
+      "n": 2
+    },
+    "mix::spectral_slope_db_per_oct": {
+      "median_delta": -0.2843350348220177,
+      "n": 2
+    },
+    "mix::warmth_ratio": {
+      "median_delta": 8.41459629950629,
+      "n": 2
+    },
+    "vocals::harshness": {
+      "median_delta": -0.027489468958063,
+      "n": 1
+    },
+    "bass::spectral_slope": {
+      "median_delta": -0.2868563396831636,
+      "n": 1
+    },
+    "bass::skewness": {
+      "median_delta": 0.8952633622286381,
+      "n": 1
+    },
+    "drums::band_frac_lowmid": {
+      "median_delta": -7.079693724940453e-06,
+      "n": 1
+    },
+    "other::band_frac_low": {
+      "median_delta": 0.0003277405428239559,
+      "n": 1
+    },
+    "other::spectral_slope": {
+      "median_delta": -0.28489672137175326,
+      "n": 1
+    }
+  },
+  "bell_boost_presence": {
+    "mix::plr": {
+      "median_delta": 0.6634909469386283,
+      "n": 2
+    },
+    "mix::overall_ms_ratio": {
+      "median_delta": 0.008550992269513308,
+      "n": 2
+    },
+    "mix::band_frac_air_median": {
+      "median_delta": -6.254191854780739e-05,
+      "n": 2
+    },
+    "mix::spectral_slope_db_per_oct": {
+      "median_delta": 0.2850813995399455,
+      "n": 2
+    },
+    "mix::warmth_ratio": {
+      "median_delta": -6.875152895004653,
+      "n": 2
+    },
+    "vocals::harshness": {
+      "median_delta": 0.04661820255176548,
+      "n": 1
+    },
+    "bass::spectral_slope": {
+      "median_delta": 0.287807325745451,
+      "n": 1
+    },
+    "bass::skewness": {
+      "median_delta": -0.92254713919945,
+      "n": 1
+    },
+    "drums::band_frac_lowmid": {
+      "median_delta": 1.647749997566242e-05,
+      "n": 1
+    },
+    "other::band_frac_low": {
+      "median_delta": -0.0005181817651447942,
+      "n": 1
+    },
+    "other::spectral_slope": {
+      "median_delta": 0.2856015287452829,
+      "n": 1
+    }
+  },
+  "shelf_air_boost": {
+    "mix::plr": {
+      "median_delta": 0.589278976766221,
+      "n": 2
+    },
+    "mix::overall_ms_ratio": {
+      "median_delta": 0.0008955425396546812,
+      "n": 2
+    },
+    "mix::band_frac_air_median": {
+      "median_delta": 0.0006229509491742919,
+      "n": 2
+    },
+    "mix::spectral_slope_db_per_oct": {
+      "median_delta": 0.05051849018010257,
+      "n": 2
+    },
+    "mix::warmth_ratio": {
+      "median_delta": -0.016350170053546886,
+      "n": 2
+    },
+    "vocals::harshness": {
+      "median_delta": 6.550010703820774e-07,
+      "n": 1
+    },
+    "bass::spectral_slope": {
+      "median_delta": 0.04556861716636185,
+      "n": 1
+    },
+    "bass::skewness": {
+      "median_delta": -0.13167871522117558,
+      "n": 1
+    },
+    "drums::band_frac_lowmid": {
+      "median_delta": 1.2187512198886044e-05,
+      "n": 1
+    },
+    "other::band_frac_low": {
+      "median_delta": -5.444140720782531e-06,
+      "n": 1
+    },
+    "other::spectral_slope": {
+      "median_delta": 0.04788359575158729,
+      "n": 1
+    }
+  },
+  "shelf_air_cut": {
+    "mix::plr": {
+      "median_delta": -0.27570200704093484,
+      "n": 2
+    },
+    "mix::overall_ms_ratio": {
+      "median_delta": -0.0007529183011817653,
+      "n": 2
+    },
+    "mix::band_frac_air_median": {
+      "median_delta": -0.0004938863115858308,
+      "n": 2
+    },
+    "mix::spectral_slope_db_per_oct": {
+      "median_delta": -0.05034864935533223,
+      "n": 2
+    },
+    "mix::warmth_ratio": {
+      "median_delta": 0.016320981395948397,
+      "n": 2
+    },
+    "vocals::harshness": {
+      "median_delta": -1.4978559435718797e-05,
+      "n": 1
+    },
+    "bass::spectral_slope": {
+      "median_delta": -0.04543004371736892,
+      "n": 1
+    },
+    "bass::skewness": {
+      "median_delta": 0.12699097737812615,
+      "n": 1
+    },
+    "drums::band_frac_lowmid": {
+      "median_delta": 5.261574552266335e-08,
+      "n": 1
+    },
+    "other::band_frac_low": {
+      "median_delta": 5.171107210967529e-06,
+      "n": 1
+    },
+    "other::spectral_slope": {
+      "median_delta": -0.047737605324533305,
+      "n": 1
+    }
+  },
+  "shelf_low_boost": {
+    "mix::plr": {
+      "median_delta": -0.048106382150813864,
+      "n": 2
+    },
+    "mix::overall_ms_ratio": {
+      "median_delta": -0.004709449755586043,
+      "n": 2
+    },
+    "mix::band_frac_air_median": {
+      "median_delta": -0.00011062328174769398,
+      "n": 2
+    },
+    "mix::spectral_slope_db_per_oct": {
+      "median_delta": -0.03001916198413168,
+      "n": 2
+    },
+    "mix::warmth_ratio": {
+      "median_delta": 1.069784900374605,
+      "n": 2
+    },
+    "vocals::harshness": {
+      "median_delta": -0.0006502726510476398,
+      "n": 1
+    },
+    "bass::spectral_slope": {
+      "median_delta": -0.023462639688613507,
+      "n": 1
+    },
+    "bass::skewness": {
+      "median_delta": 0.7948667429261462,
+      "n": 1
+    },
+    "drums::band_frac_lowmid": {
+      "median_delta": -0.0007611532307144737,
+      "n": 1
+    },
+    "other::band_frac_low": {
+      "median_delta": 0.0018274100084128692,
+      "n": 1
+    },
+    "other::spectral_slope": {
+      "median_delta": -0.029935558760419312,
+      "n": 1
+    }
+  },
+  "shelf_low_cut": {
+    "mix::plr": {
+      "median_delta": 0.11004060021273165,
+      "n": 2
+    },
+    "mix::overall_ms_ratio": {
+      "median_delta": 0.004124706394327993,
+      "n": 2
+    },
+    "mix::band_frac_air_median": {
+      "median_delta": 0.00010028025519296947,
+      "n": 2
+    },
+    "mix::spectral_slope_db_per_oct": {
+      "median_delta": 0.02995963078341024,
+      "n": 2
+    },
+    "mix::warmth_ratio": {
+      "median_delta": -0.7852081568245488,
+      "n": 2
+    },
+    "vocals::harshness": {
+      "median_delta": 0.0006352892913419061,
+      "n": 1
+    },
+    "bass::spectral_slope": {
+      "median_delta": 0.030478956591457163,
+      "n": 1
+    },
+    "bass::skewness": {
+      "median_delta": -0.7388407069476521,
+      "n": 1
+    },
+    "drums::band_frac_lowmid": {
+      "median_delta": 0.001358534524448068,
+      "n": 1
+    },
+    "other::band_frac_low": {
+      "median_delta": -0.0013860194707209852,
+      "n": 1
+    },
+    "other::spectral_slope": {
+      "median_delta": 0.02999628888644601,
+      "n": 1
+    }
+  },
+  "compressor_soft": {
+    "mix::plr": {
+      "median_delta": -0.1360703952777369,
+      "n": 2
+    },
+    "mix::overall_ms_ratio": {
+      "median_delta": 0.0010395520893149712,
+      "n": 2
+    },
+    "mix::band_frac_air_median": {
+      "median_delta": -9.354211951659612e-09,
+      "n": 2
+    },
+    "mix::spectral_slope_db_per_oct": {
+      "median_delta": 0.00017412389710758092,
+      "n": 2
+    },
+    "mix::warmth_ratio": {
+      "median_delta": 0.026842953900995337,
+      "n": 2
+    },
+    "vocals::harshness": {
+      "median_delta": 0.004119035363434498,
+      "n": 1
+    },
+    "bass::spectral_slope": {
+      "median_delta": -0.008198361714043756,
+      "n": 1
+    },
+    "bass::skewness": {
+      "median_delta": 0.003710902155589224,
+      "n": 1
+    },
+    "drums::band_frac_lowmid": {
+      "median_delta": -0.0002444388687704471,
+      "n": 1
+    },
+    "other::band_frac_low": {
+      "median_delta": -2.1672638186295834e-05,
+      "n": 1
+    },
+    "other::spectral_slope": {
+      "median_delta": -0.001304042724486365,
+      "n": 1
+    }
+  },
+  "saturation_soft": {
+    "mix::plr": {
+      "median_delta": -2.435634264138489,
+      "n": 2
+    },
+    "mix::overall_ms_ratio": {
+      "median_delta": -0.0017771314919246828,
+      "n": 2
+    },
+    "mix::band_frac_air_median": {
+      "median_delta": -9.117574520077048e-06,
+      "n": 2
+    },
+    "mix::spectral_slope_db_per_oct": {
+      "median_delta": -0.0019259680590426598,
+      "n": 2
+    },
+    "mix::warmth_ratio": {
+      "median_delta": 0.2869699725326136,
+      "n": 2
+    },
+    "vocals::harshness": {
+      "median_delta": 0.0012049326483388467,
+      "n": 1
+    },
+    "bass::spectral_slope": {
+      "median_delta": -0.13517377165437416,
+      "n": 1
+    },
+    "bass::skewness": {
+      "median_delta": 0.10042400778567995,
+      "n": 1
+    },
+    "drums::band_frac_lowmid": {
+      "median_delta": 0.0017471509365797853,
+      "n": 1
+    },
+    "other::band_frac_low": {
+      "median_delta": -0.001164753815382006,
+      "n": 1
+    },
+    "other::spectral_slope": {
+      "median_delta": 0.0008498316863310151,
+      "n": 1
+    }
+  }
+}
