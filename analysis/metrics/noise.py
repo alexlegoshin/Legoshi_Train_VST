@@ -86,6 +86,57 @@ def find_persistent_narrowband(mono, sr, f_lo=30, f_hi=1000, top_n=10, quiet_per
     return candidates[:top_n]
 
 
+def refine_narrowband_freq(mono, sr, f_approx, search_hz=15.0, n_fft=1 << 18):
+    """Блок 2 (Этап 1, устранение гула): find_persistent_narrowband даёт
+    частоту с точностью STFT-бина детектора (~11Гц при N_FFT=4096) — для
+    notch-фильтра этого мало: узкий notch на 5Гц мимо цели снимает гул на
+    единицы дБ вместо десятков (проверено эмпирически). Уточняем: FFT с
+    нулевым дополнением (интерполированное разрешение) вокруг приближённой
+    частоты + параболическая интерполяция по трём соседним бинам вокруг
+    пика — стандартный дешёвый приём, даёт точность в доли Гц."""
+    spec = np.abs(np.fft.rfft(mono, n=n_fft))
+    freqs = np.fft.rfftfreq(n_fft, 1 / sr)
+    mask = (freqs >= f_approx - search_hz) & (freqs <= f_approx + search_hz)
+    idx = np.where(mask)[0]
+    if len(idx) < 3:
+        return float(f_approx)
+    k = idx[np.argmax(spec[idx])]
+    if k == 0 or k == len(spec) - 1:
+        return float(freqs[k])
+    a, b, c = spec[k - 1], spec[k], spec[k + 1]
+    denom = a - 2 * b + c
+    delta = 0.5 * (a - c) / denom if abs(denom) > 1e-12 else 0.0
+    return float(freqs[k] + delta * (freqs[1] - freqs[0]))
+
+
+def remove_narrowband_hum(mono, sr, candidates, q=10, min_stability=3.0):
+    """Notch-фильтр (zero-phase, filtfilt) на каждой узкополосной наводке,
+    независимо детектированной find_persistent_narrowband — снимаем то, что
+    реально обнаружено как устойчивое, не гадаем заранее про 50/60Гц и
+    гармоники (см. ресёрч в documentation/roadmap.md: для цифровых дорожек
+    из DAW статичный notch-банк — стандартный и достаточный подход, гул не
+    "плывёт" по частоте, адаптивный вариант не нужен).
+
+    min_stability — отдельный, более строгий порог для УДАЛЕНИЯ, чем для
+    отчёта: детекция — недорогая операция, вырезание частоты — необратимо
+    портит сигнал при ложном срабатывании, порог стоит держать строже."""
+    from scipy.signal import iirnotch, filtfilt
+    out = mono.copy()
+    removed = []
+    for c in candidates:
+        if c["stability_score"] < min_stability:
+            continue
+        f_approx = c["freq_hz"]
+        if f_approx <= 0 or f_approx >= sr / 2:
+            continue
+        f_refined = refine_narrowband_freq(mono, sr, f_approx)
+        b, a = iirnotch(f_refined, q, sr)
+        out = filtfilt(b, a, out)
+        removed.append(dict(freq_hz_detected=f_approx, freq_hz_refined=f_refined,
+                             stability_score=c["stability_score"]))
+    return out, removed
+
+
 def analyze_file(path, sr_expected=44100):
     import soundfile as sf
     data, sr = sf.read(str(path), dtype="float64", always_2d=True)

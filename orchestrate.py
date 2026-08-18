@@ -37,7 +37,7 @@ import numpy as np
 import pandas as pd
 import soundfile as sf
 
-from analysis import alignment, engine, sections
+from analysis import alignment, engine, recommendations, sections
 from analysis.verdict import evaluate, format_report, load_preset, Reliability, Status
 
 ROOT = Path(__file__).resolve().parent
@@ -469,7 +469,19 @@ def write_report(out_dir: Path, track_name: str, measurements: dict, verdicts, d
             if d.get("dual_mono"):
                 facts.append("дуал-моно (каналы идентичны — не настоящее стерео)")
             if d.get("clipped"):
-                facts.append("клиппинг (серия сэмплов на полной шкале)")
+                cd = d.get("clipping_detail")
+                if cd:
+                    regions_str = ", ".join(f"{s:.2f}-{e:.2f}с" for s, e in cd["clipped_regions_s"][:8])
+                    more = f" +ещё {len(cd['clipped_regions_s']) - 8}" if len(cd["clipped_regions_s"]) > 8 else ""
+                    facts.append(f"клиппинг: {cd['n_clipped_runs']} отрезков, "
+                                 f"{cd['clipped_fraction']*100:.2f}% трека — {regions_str}{more}")
+                else:
+                    facts.append("клиппинг (серия сэмплов на полной шкале)")
+            if d.get("hum_candidates"):
+                hum_str = ", ".join(f"{c.get('freq_hz_refined', c['freq_hz']):.1f}Гц "
+                                    f"(score={c['stability_score']:.1f})"
+                                    for c in d["hum_candidates"][:5])
+                facts.append(f"возможная наводка: {hum_str}")
             if d.get("reverb_skipped_reason"):
                 facts.append(f"реверб не считался: {d['reverb_skipped_reason']}")
             if d.get("vocal_analysis_error"):
@@ -478,6 +490,16 @@ def write_report(out_dir: Path, track_name: str, measurements: dict, verdicts, d
                 diag_lines.append(f"  {role}: " + "; ".join(facts))
         if len(diag_lines) == 1:
             diag_lines.append("  без замечаний")
+        diag_lines.append("")
+
+    # Блок 2 (Этап 1, «без выбора»): рекомендации по очистке — программа
+    # только называет место, параметры и категорию, никогда не применяет
+    # сама (см. roadmap.md, главный принцип)
+    restore_recs = recommendations.all_restoration_recommendations(diagnostics or {})
+    if restore_recs:
+        diag_lines.append("Рекомендации по очистке (Блок 2, без выбора — не применяется автоматически):")
+        for r in restore_recs:
+            diag_lines.append(f"  {r.text} (уверенность {r.confidence:.0%})")
         diag_lines.append("")
 
     # ТЗ-05 Д: явный итоговый блок "что не измерено и почему" — часть
@@ -530,6 +552,12 @@ def write_report(out_dir: Path, track_name: str, measurements: dict, verdicts, d
             "source": section_source,
             "sections": section_profile.to_dict(orient="records"),
         }
+    if restore_recs:
+        output_json["restoration_recommendations"] = [
+            dict(category=r.category, source=r.source, location_s=r.location_s,
+                 params=r.params, confidence=r.confidence, text=r.text)
+            for r in restore_recs
+        ]
     (out_dir / "measurements.json").write_text(json.dumps(output_json, indent=2, ensure_ascii=False, default=str),
                                                  encoding="utf-8")
     print(f"\n  -> {out_dir / 'report.txt'}")

@@ -16,7 +16,7 @@ import soundfile as sf
 from scipy.signal import butter, filtfilt
 
 from analysis.metrics import loudness_dynamics, spectral, stereo_space, psychoacoustic, reverb
-from analysis.metrics import pitch_vocal, vocal_texture
+from analysis.metrics import pitch_vocal, vocal_texture, noise
 
 WIN_S = 4.0
 HOP_S = 1.0
@@ -91,15 +91,34 @@ def detect_dual_mono(data, tol=1e-9):
     return bool(np.max(np.abs(data[:, 0] - data[:, 1])) < tol)
 
 
-def detect_clipping(data, run_len=3, thresh=0.999):
-    """ТЗ-05 А7: серии >= run_len сэмплов на полной шкале на любом канале."""
+def detect_clipping(data, sr, run_len=3, thresh=0.999):
+    """ТЗ-05 А7 + Блок 2 (Этап 1, локализация): серии >= run_len сэмплов на
+    полной шкале на любом канале. Раньше — только bool (есть/нет), теперь
+    отрезки с таймкодами и доля трека — без локализации "клиппинг есть"
+    ничего не говорит о том, править один щелчок или всю дорожку заново."""
     over = np.any(np.abs(data) >= thresh, axis=1)
-    run = 0
-    for v in over:
-        run = run + 1 if v else 0
-        if run >= run_len:
-            return True
-    return False
+    n = len(over)
+    regions = []
+    run_start, run = None, 0
+    for i, v in enumerate(over):
+        if v:
+            if run == 0:
+                run_start = i
+            run += 1
+        else:
+            if run >= run_len:
+                regions.append((run_start, i))
+            run = 0
+    if run >= run_len:
+        regions.append((run_start, n))
+
+    total_clipped = sum(e - s for s, e in regions)
+    return dict(
+        clipped=len(regions) > 0,
+        n_clipped_runs=len(regions),
+        clipped_fraction=float(total_clipped / n) if n else 0.0,
+        clipped_regions_s=[(round(s / sr, 3), round(e / sr, 3)) for s, e in regions],
+    )
 
 
 def track_avg_metrics(path, role, is_stereo_capable=True, allow_reverb=True):
@@ -133,7 +152,22 @@ def track_avg_metrics(path, role, is_stereo_capable=True, allow_reverb=True):
         diagnostics["codec_cutoff_invalidated_keys"] = invalidated
 
     diagnostics["dual_mono"] = detect_dual_mono(data)
-    diagnostics["clipped"] = detect_clipping(data)
+    clip_info = detect_clipping(data, sr)
+    diagnostics["clipped"] = clip_info["clipped"]
+    if clip_info["clipped"]:
+        diagnostics["clipping_detail"] = clip_info
+
+    # Блок 2 (Этап 1, очистка/восстановление): только диагностика — точные
+    # параметры для рекомендации ("используй notch на X Гц"), само
+    # устранение программа не делает никогда (см. roadmap.md, главный
+    # принцип). Уточняем частоту сразу здесь, не в неиспользуемом пути —
+    # детектор даёт точность STFT-бина (~11Гц), для рекомендации мало.
+    hum_candidates = noise.find_persistent_narrowband(mono, sr)
+    notable_hum = [c for c in hum_candidates if c["stability_score"] >= 3.0]
+    for c in notable_hum:
+        c["freq_hz_refined"] = noise.refine_narrowband_freq(mono, sr, c["freq_hz"])
+    if notable_hum:
+        diagnostics["hum_candidates"] = notable_hum
 
     # ТЗ-05 А1: psychoacoustic.quick_metrics считает Zwicker loudness/DIN
     # sharpness/tonality — эти величины частично зависят от абсолютного
