@@ -250,7 +250,8 @@ def track_avg_metrics(path, role, is_stereo_capable=True, allow_reverb=True):
             # локализация. Локальный выброс (напр. rt60 только в одном
             # интервале) — кандидат в "бликид/чужая вставка", не общая
             # акустика трека (следующий пункт roadmap.md, Блок 2)
-            reverb_windows = reverb.windowed_summary(reverb_df, win_s=DIAG_WINDOW_S)
+            reverb_windows = reverb.windowed_summary(reverb_df, win_s=DIAG_WINDOW_S,
+                                                       track_duration_s=len(mono) / sr)
             if reverb_windows:
                 diagnostics["reverb_windowed"] = reverb_windows
         except Exception:

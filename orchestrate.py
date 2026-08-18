@@ -290,6 +290,23 @@ def classify_trackout(folder: Path, work_dir: Path) -> tuple[Path, dict, dict, d
 # --------------------------------------------------------------------------
 # Общая часть: метрики + вердикт
 # --------------------------------------------------------------------------
+def _assert_consistent_sr(sr_by_role: dict) -> None:
+    """Блок 4: masking_erb.analyze_group ждёт ОДИН sr для всех источников
+    сразу (штампует его во все stft() без проверки per-трек). БАГ (найден
+    код-ревью, исправлен): раньше единый sr для всех источников молча
+    брался с последней обработанной роли, без проверки, что остальные
+    реально совпадают — сегодня оба режима входа приводят всё к
+    engine.PIPELINE_SR до этой точки, так что инвариант держится, но
+    случайно, не явной проверкой. Если в будущем появится путь ввода,
+    обходящий ensure_sr, analyze_group молча применил бы чужой sr к STFT
+    одного из источников — частотные бины съедут, audibility/атрибуция
+    станут systematically неверными без исключения и без NaN."""
+    distinct_sr = set(sr_by_role.values())
+    if len(distinct_sr) > 1:
+        raise ValueError(f"источники для маскирования на разных sr: {sr_by_role} — "
+                          f"analyze_group ожидает единую частоту дискретизации")
+
+
 def analyze_all_sources(mix_path: Path, stems: dict, deep_psychoacoustics: bool,
                          is_ml_separated: bool, track_name: str = None) -> tuple[dict, dict]:
     """is_ml_separated=True — режим 1 (Demucs): реверб считается ТОЛЬКО на
@@ -300,6 +317,7 @@ def analyze_all_sources(mix_path: Path, stems: dict, deep_psychoacoustics: bool,
     all_diagnostics = {}
     mix_gain_db = engine.get_mix_gain_db(mix_path)
     track_mono_by_role = {}  # Блок 4: {role: mono} без mix — вход masking_erb.analyze_group
+    sr_by_role = {}  # для проверки, что все источники реально на одной частоте перед analyze_group
     sr_masking = None
     section_profile_for_attribution = None  # Блок 5: границы секций с mix, применимы к любой роли
 
@@ -337,6 +355,7 @@ def analyze_all_sources(mix_path: Path, stems: dict, deep_psychoacoustics: bool,
             # загружен здесь для window_metrics — переиспользуем, не грузим
             # файл ещё раз.
             track_mono_by_role[role] = mono
+            sr_by_role[role] = sr
             sr_masking = sr
         f0_df = vocal_frames.get("f0") if role == "vocals" else None
         notes_df = vocal_frames.get("notes") if role == "vocals" else None
@@ -376,6 +395,7 @@ def analyze_all_sources(mix_path: Path, stems: dict, deep_psychoacoustics: bool,
     # (режим 2) уже выровнен по главному миксу в align_and_sum_tracks.
     if len(track_mono_by_role) >= 2:
         try:
+            _assert_consistent_sr(sr_by_role)
             masking_result = masking_erb.analyze_group(track_mono_by_role, sr_masking)
             for role, aud in masking_result["audibility"].items():
                 all_diagnostics.setdefault(role, {})["audibility"] = aud

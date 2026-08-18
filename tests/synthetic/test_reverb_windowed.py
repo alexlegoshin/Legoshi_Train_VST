@@ -44,8 +44,33 @@ def test_empty_input_returns_empty_list():
     assert windowed_summary(None, win_s=15.0) == []
 
 
+def test_last_window_t_end_clamped_to_track_duration():
+    """Регрессия (найдена код-ревью): без track_duration_s последнее окно
+    получало чисто номинальный t_end=(idx+1)*win_s, даже если реальный
+    трек короче — на 42с треке с онсетом на 35с (окно idx=2, 30-45с)
+    t_end указывал бы на 45с, хотя трек кончается на 42с. Тот же баг,
+    которого noise.find_persistent_narrowband_windowed для точно такого
+    же понятия "~15с окно" не имеет (там t_end честно обрезан по факту
+    длины сигнала) — здесь нужна та же дисциплина."""
+    df = pd.DataFrame([dict(onset_s=35.0, rt60_s=0.4, edt_s=0.3, c50_db=8.0, c80_db=10.0, drr_db=4.0)])
+    windows = windowed_summary(df, win_s=15.0, track_duration_s=42.0)
+    assert len(windows) == 1
+    assert windows[0]["t_start"] == 30.0
+    assert windows[0]["t_end"] == 42.0  # не 45.0 — трек реально кончается на 42с
+
+
+def test_t_end_not_clamped_when_track_duration_not_given():
+    """Обратная совместимость: без track_duration_s поведение как раньше
+    (номинальная граница сетки) — не ломаем вызовы, где длина неизвестна."""
+    df = pd.DataFrame([dict(onset_s=35.0, rt60_s=0.4, edt_s=0.3, c50_db=8.0, c80_db=10.0, drr_db=4.0)])
+    windows = windowed_summary(df, win_s=15.0)
+    assert windows[0]["t_end"] == 45.0
+
+
 if __name__ == "__main__":
     test_groups_onsets_by_position()
     test_local_outlier_visible_only_in_its_window()
     test_empty_input_returns_empty_list()
+    test_last_window_t_end_clamped_to_track_duration()
+    test_t_end_not_clamped_when_track_duration_not_given()
     print("Все тесты оконной сводки реверба (Блок 2) прошли.")

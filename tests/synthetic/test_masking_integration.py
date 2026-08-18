@@ -9,6 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import numpy as np
+import pytest
 import soundfile as sf
 
 import orchestrate
@@ -68,10 +69,27 @@ def test_masking_skipped_with_single_source(tmp_path):
     assert "_masking" not in diagnostics
 
 
+def test_assert_consistent_sr_passes_when_all_equal():
+    orchestrate._assert_consistent_sr({"vocals": 44100, "bass": 44100, "drums": 44100})  # не должно упасть
+
+
+def test_assert_consistent_sr_raises_on_mismatch():
+    """Регрессия (найдена код-ревью): раньше единый sr для analyze_group
+    молча брался с последней обработанной роли без проверки, что
+    остальные источники реально совпадают по частоте — латентный баг,
+    сегодня не триггерится (оба режима входа приводят всё к
+    engine.PIPELINE_SR раньше), но без явной проверки был бы виден только
+    как систематически неверные audibility/атрибуция, без исключения."""
+    with pytest.raises(ValueError, match="разных sr"):
+        orchestrate._assert_consistent_sr({"vocals": 44100, "bass": 48000})
+
+
 if __name__ == "__main__":
     import tempfile
     with tempfile.TemporaryDirectory() as tmp:
         test_masking_wired_into_analyze_all_sources(Path(tmp))
     with tempfile.TemporaryDirectory() as tmp:
         test_masking_skipped_with_single_source(Path(tmp))
+    test_assert_consistent_sr_passes_when_all_equal()
+    test_assert_consistent_sr_raises_on_mismatch()
     print("Все тесты подключения маскирования (Блок 4) прошли.")

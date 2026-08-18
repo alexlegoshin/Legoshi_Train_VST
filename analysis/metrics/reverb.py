@@ -98,7 +98,7 @@ def predelay_estimate(x_tail, sr, direct_thresh_db=-20):
     return float(below[0] / sr) if len(below) else np.nan
 
 
-def windowed_summary(df, win_s=15.0):
+def windowed_summary(df, win_s=15.0, track_duration_s=None):
     """Блок 2 (среднее окно): группировка per-onset строк analyze_file по
     позиции на треке (~win_s секунд), не по всему треку разом — не новая
     метрика, просто агрегация уже посчитанных per-onset значений. Локальный
@@ -106,7 +106,15 @@ def windowed_summary(df, win_s=15.0):
     бликида/чужой вставки на конкретном участке, не общей акустики трека
     (roadmap.md, Блок 2, следующий пункт «эхо/бликид vs осознанный реверб»).
     Окна без изолированных onset'ов просто отсутствуют в результате —
-    честная нехватка данных на тихом участке, не выдуманное значение."""
+    честная нехватка данных на тихом участке, не выдуманное значение.
+
+    track_duration_s — реальная длина трека в секундах. БАГ (найден
+    код-ревью, исправлен): t_end раньше был чисто номинальной границей
+    сетки (idx+1)*win_s, без проверки против реальной длины — на треке не
+    кратном win_s последнее окно указывало t_end ЗА концом файла (напр.
+    42с трек, последнее окно 30-45с). noise.find_persistent_narrowband_windowed
+    для того же понятия «~15с окно» честно обрезает t_end по факту длины
+    сигнала — здесь та же дисциплина, если длина передана."""
     if df is None or not len(df):
         return []
     win_idx = (df["onset_s"] // win_s).astype(int)
@@ -114,8 +122,11 @@ def windowed_summary(df, win_s=15.0):
     for idx, sub in df.groupby(win_idx):
         def med(col):
             return float(sub[col].median()) if sub[col].notna().any() else np.nan
+        t_end = (idx + 1) * win_s
+        if track_duration_s is not None:
+            t_end = min(t_end, track_duration_s)
         windows.append(dict(
-            t_start=float(idx * win_s), t_end=float((idx + 1) * win_s), n_onsets=len(sub),
+            t_start=float(idx * win_s), t_end=float(t_end), n_onsets=len(sub),
             rt60_s_median=med("rt60_s"), edt_s_median=med("edt_s"),
             c50_db_median=med("c50_db"), c80_db_median=med("c80_db"),
             drr_db_median=med("drr_db"),
