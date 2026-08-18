@@ -35,15 +35,22 @@ def _clipping_recommendations(source: str, clipping_detail: dict) -> list:
     regions = clipping_detail["clipped_regions_s"]
     fraction_pct = clipping_detail["clipped_fraction"] * 100
     out = []
-    for start_s, end_s in regions:
+    for r in regions:
+        start_s, end_s = r["start_s"], r["end_s"]
+        # категория — не просто "declip": short click vs sustained run
+        # обычно требуют разного режима восстановления (см. engine.py,
+        # CLICK_MAX_S) — разные записи каталога Блока 8, не один параметр
+        category = f"declip_{r['severity']}"
+        ch_str = "оба канала" if len(r["channels"]) > 1 else (
+            f"канал {r['channels'][0]}" if r["channels"] else "?")
         out.append(Recommendation(
-            category="declip",
+            category=category,
             source=source,
             location_s=(start_s, end_s),
-            params=dict(duration_s=round(end_s - start_s, 3)),
+            params=dict(duration_s=r["duration_s"], channels=r["channels"], severity=r["severity"]),
             confidence=1.0,  # клиппинг — измерение, не оценка, порог фиксирован
             text=(f"[{source}] {start_s:.2f}-{end_s:.2f}с: клиппинг "
-                  f"({end_s - start_s:.3f}с) — нужен declip"),
+                  f"({r['duration_s']:.3f}с, {r['severity']}, {ch_str}) — нужен declip"),
         ))
     if len(regions) > 1:
         out[0].text += f" (всего клиппинга по дорожке: {fraction_pct:.2f}% длительности)"

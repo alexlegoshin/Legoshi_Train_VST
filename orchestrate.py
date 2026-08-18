@@ -471,7 +471,8 @@ def write_report(out_dir: Path, track_name: str, measurements: dict, verdicts, d
             if d.get("clipped"):
                 cd = d.get("clipping_detail")
                 if cd:
-                    regions_str = ", ".join(f"{s:.2f}-{e:.2f}с" for s, e in cd["clipped_regions_s"][:8])
+                    regions_str = ", ".join(f"{r['start_s']:.2f}-{r['end_s']:.2f}с ({r['severity']})"
+                                            for r in cd["clipped_regions_s"][:8])
                     more = f" +ещё {len(cd['clipped_regions_s']) - 8}" if len(cd["clipped_regions_s"]) > 8 else ""
                     facts.append(f"клиппинг: {cd['n_clipped_runs']} отрезков, "
                                  f"{cd['clipped_fraction']*100:.2f}% трека — {regions_str}{more}")

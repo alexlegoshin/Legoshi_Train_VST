@@ -20,17 +20,35 @@ def test_clipping_produces_one_recommendation_per_region():
     diagnostics = {
         "clipping_detail": {
             "clipped": True, "n_clipped_runs": 2, "clipped_fraction": 0.001,
-            "clipped_regions_s": [(1.0, 1.05), (10.2, 10.3)],
+            "clipped_regions_s": [
+                dict(start_s=1.0, end_s=1.05, duration_s=0.05, channels=[0, 1], severity="sustained"),
+                dict(start_s=10.2, end_s=10.3, duration_s=0.1, channels=[0], severity="sustained"),
+            ],
         },
     }
     recs = restoration_recommendations(diagnostics, "bass")
     assert len(recs) == 2
-    assert all(r.category == "declip" for r in recs)
+    assert all(r.category == "declip_sustained" for r in recs)
     assert all(r.source == "bass" for r in recs)
     assert recs[0].location_s == (1.0, 1.05)
     assert recs[1].location_s == (10.2, 10.3)
+    assert recs[1].params["channels"] == [0]
     assert "declip" in recs[0].text
     assert "bass" in recs[0].text
+
+
+def test_clipping_category_reflects_severity():
+    """category разделяет click/sustained — разные режимы восстановления у
+    реального declip-инструмента, Блок 8 будет искать по этому тегу."""
+    diagnostics = {
+        "clipping_detail": {
+            "clipped": True, "n_clipped_runs": 1, "clipped_fraction": 0.0001,
+            "clipped_regions_s": [dict(start_s=1.0, end_s=1.001, duration_s=0.001,
+                                        channels=[0, 1], severity="click")],
+        },
+    }
+    recs = restoration_recommendations(diagnostics, "vocals")
+    assert recs[0].category == "declip_click"
 
 
 def test_hum_recommendation_uses_refined_frequency_when_available():
@@ -65,14 +83,18 @@ def test_confidence_clamped_to_one():
 def test_sorting_by_timeline_then_confidence():
     """Двойная сортировка: сначала по позиции на таймлайне (гул без отрезка
     считается "в конце"), внутри той же позиции — по убыванию уверенности."""
+    def _clip_region(start_s, end_s):
+        return dict(start_s=start_s, end_s=end_s, duration_s=round(end_s - start_s, 3),
+                    channels=[0, 1], severity="click")
+
     all_diag = {
         "vocals": {
             "clipping_detail": {"clipped": True, "n_clipped_runs": 1, "clipped_fraction": 0.0001,
-                                 "clipped_regions_s": [(20.0, 20.01)]},
+                                 "clipped_regions_s": [_clip_region(20.0, 20.01)]},
         },
         "bass": {
             "clipping_detail": {"clipped": True, "n_clipped_runs": 1, "clipped_fraction": 0.0001,
-                                 "clipped_regions_s": [(5.0, 5.01)]},
+                                 "clipped_regions_s": [_clip_region(5.0, 5.01)]},
             "hum_candidates": [{"freq_hz": 50.0, "stability_score": 5.0}],
         },
         "_run": {"preset_name": "amber"},  # служебная запись, должна быть пропущена
@@ -88,6 +110,7 @@ def test_sorting_by_timeline_then_confidence():
 if __name__ == "__main__":
     test_no_recommendations_on_clean_diagnostics()
     test_clipping_produces_one_recommendation_per_region()
+    test_clipping_category_reflects_severity()
     test_hum_recommendation_uses_refined_frequency_when_available()
     test_hum_recommendation_falls_back_to_raw_frequency()
     test_confidence_clamped_to_one()

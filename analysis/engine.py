@@ -91,12 +91,22 @@ def detect_dual_mono(data, tol=1e-9):
     return bool(np.max(np.abs(data[:, 0] - data[:, 1])) < tol)
 
 
+CLICK_MAX_S = 0.005  # Блок 2: короче — "клик" (узкополосный declip-режим
+                       # достаточен), длиннее — "sustained" (нужен
+                       # multi-band declip, ближе к реконструкции формы
+                       # волны, не к точечному щелчку) — граница условная,
+                       # не откалибрована на реальных данных, эвристика
+
+
 def detect_clipping(data, sr, run_len=3, thresh=0.999):
-    """ТЗ-05 А7 + Блок 2 (Этап 1, локализация): серии >= run_len сэмплов на
-    полной шкале на любом канале. Раньше — только bool (есть/нет), теперь
-    отрезки с таймкодами и доля трека — без локализации "клиппинг есть"
-    ничего не говорит о том, править один щелчок или всю дорожку заново."""
-    over = np.any(np.abs(data) >= thresh, axis=1)
+    """ТЗ-05 А7 + Блок 2 (Этап 1, локализация + параметры для рекомендации):
+    серии >= run_len сэмплов на полной шкале. Раньше — только bool
+    (есть/нет), потом — отрезки с таймкодами, теперь ещё канал(ы) и грубая
+    классификация по длительности — без этого "клиппинг есть" ничего не
+    говорит о том, править один щелчок или восстанавливать протяжённый
+    отрезок целиком, а это разные режимы у любого инструмента восстановления."""
+    over_per_channel = np.abs(data) >= thresh
+    over = np.any(over_per_channel, axis=1)
     n = len(over)
     regions = []
     run_start, run = None, 0
@@ -113,11 +123,20 @@ def detect_clipping(data, sr, run_len=3, thresh=0.999):
         regions.append((run_start, n))
 
     total_clipped = sum(e - s for s, e in regions)
+    region_details = []
+    for s, e in regions:
+        dur_s = (e - s) / sr
+        channels = [ch for ch in range(data.shape[1]) if over_per_channel[s:e, ch].any()]
+        region_details.append(dict(
+            start_s=round(s / sr, 3), end_s=round(e / sr, 3), duration_s=round(dur_s, 4),
+            channels=channels, severity=("click" if dur_s < CLICK_MAX_S else "sustained"),
+        ))
+
     return dict(
         clipped=len(regions) > 0,
         n_clipped_runs=len(regions),
         clipped_fraction=float(total_clipped / n) if n else 0.0,
-        clipped_regions_s=[(round(s / sr, 3), round(e / sr, 3)) for s, e in regions],
+        clipped_regions_s=region_details,
     )
 
 
