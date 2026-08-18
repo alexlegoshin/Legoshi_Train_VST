@@ -23,6 +23,7 @@
 """
 import argparse
 import hashlib
+import itertools
 import json
 import subprocess
 import sys
@@ -37,7 +38,10 @@ import numpy as np
 import pandas as pd
 import soundfile as sf
 
+import itertools
+
 from analysis import alignment, engine, recommendations, sections
+from analysis.metrics import layering
 from analysis.verdict import evaluate, format_report, load_preset, Reliability, Status
 
 ROOT = Path(__file__).resolve().parent
@@ -132,16 +136,41 @@ def run_demucs(mix_path: Path, work_dir: Path) -> tuple[Path, dict]:
 # --------------------------------------------------------------------------
 # Режим 2: трек-аут -> суммирование дорожек одной роли
 # --------------------------------------------------------------------------
+def _pairwise_layering(aligned_meta: list, sr: int) -> list:
+    """Блок 3 (измерение, «наложение дублей»): пока дорожки одной роли не
+    слиты в сумму, у нас есть последний момент, когда каждый дубль ещё
+    отдельный сигнал СО СВОИМ офсетом относительно общей оси (тот же
+    offset, что уже посчитан GCC-PHAT против главного микса выше) — именно
+    это и нужно layering.analyze_pair: относительный сдвиг между дублями
+    без гадания заново, они уже в одной системе координат. После этой
+    функции дубли суммируются и по отдельности не восстановить — если не
+    посчитать здесь, негде будет взять. Не рекомендация (только измерение
+    расхождения по времени/питчу и верхняя оценка риска гребёнки) —
+    рекомендация по фиксу ждёт Блок 8 («с выбором», см. roadmap.md)."""
+    pairs = []
+    for (path_a, off_a), (path_b, off_b) in itertools.combinations(aligned_meta, 2):
+        try:
+            summary = layering.analyze_pair(path_a, path_b, off_a, off_b, sr_expected=sr)
+            pairs.append(dict(pair=[path_a.name, path_b.name], **summary))
+        except Exception as e:
+            pairs.append(dict(pair=[path_a.name, path_b.name], error=str(e)))
+    return pairs
+
+
 def align_and_sum_tracks(paths: list[Path], ref_mono: np.ndarray, ref_sr: int,
-                          work_dir: Path, out_name: str, max_shift_s: float = 2.0) -> tuple[Path, list[str]]:
+                          work_dir: Path, out_name: str,
+                          max_shift_s: float = 2.0) -> tuple[Path, list[str], list]:
     """ТЗ-05 А4: каждая дорожка перед суммированием в роль проверяется
     GCC-PHAT против главного микса (критерий уверенности — ТЗ-01 §3.2:
     confidence>1.3 и z>8). Выровненные — сдвигаются на найденный офсет.
     Невыровненные — ИСКЛЮЧАЮТСЯ из суммы, а не складываются вслепую —
     несинхронная дорожка не усиливает роль, а портит её шумом фазовых
-    biений. Возвращает (путь к сумме, список исключённых с причиной)."""
+    biений. Возвращает (путь к сумме, список исключённых с причиной,
+    список попарных измерений наложения дублей — Блок 3, пусто, если
+    дубль в роли один)."""
     excluded = []
     aligned_signals = []
+    aligned_meta = []  # (путь, офсет_в_секундах) — для _pairwise_layering
     sr_ref = None
     for p in paths:
         data, sr = sf.read(str(p), dtype="float64", always_2d=True)
@@ -157,6 +186,7 @@ def align_and_sum_tracks(paths: list[Path], ref_mono: np.ndarray, ref_sr: int,
         if alignment.is_confident(confidence, z):
             shifted = mono[shift:] if shift >= 0 else np.concatenate([np.zeros(-shift), mono])
             aligned_signals.append(shifted)
+            aligned_meta.append((p, shift / sr))
             print(f"      {p.name}: выровнено, сдвиг {shift/sr*1000:+.1f}мс (conf={confidence:.2f}, z={z:.1f})")
         else:
             excluded.append(f"{p.name} (conf={confidence:.2f}, z={z:.1f} — ниже порога 1.3/8)")
@@ -165,16 +195,18 @@ def align_and_sum_tracks(paths: list[Path], ref_mono: np.ndarray, ref_sr: int,
     if not aligned_signals:
         raise ValueError(f"{out_name}: ни одна дорожка не прошла проверку синхронности против главного микса")
 
+    layering_pairs = _pairwise_layering(aligned_meta, sr_ref) if len(aligned_meta) >= 2 else []
+
     max_len = max(len(s) for s in aligned_signals)
     summed = np.zeros(max_len)
     for s in aligned_signals:
         summed[:len(s)] += s
     out_path = work_dir / f"{out_name}.wav"
     sf.write(str(out_path), summed, sr_ref)
-    return out_path, excluded
+    return out_path, excluded, layering_pairs
 
 
-def classify_trackout(folder: Path, work_dir: Path) -> tuple[Path, dict, dict, dict]:
+def classify_trackout(folder: Path, work_dir: Path) -> tuple[Path, dict, dict, dict, dict]:
     files = [p for p in sorted(folder.iterdir()) if p.suffix.lower() in AUDIO_EXT]
     if not files:
         raise ValueError(f"{folder}: нет аудиофайлов")
@@ -229,17 +261,20 @@ def classify_trackout(folder: Path, work_dir: Path) -> tuple[Path, dict, dict, d
 
     stems = {}
     excluded_all = {}
+    layering_all = {}
     for role, ps in by_role.items():
         print(f"    выравниваю {role} против главного микса...")
-        stems[role], excluded = align_and_sum_tracks(ps, ref_mono, ref_sr, work_dir, role)
+        stems[role], excluded, layering_pairs = align_and_sum_tracks(ps, ref_mono, ref_sr, work_dir, role)
         if excluded:
             excluded_all[role] = excluded
+        if layering_pairs:
+            layering_all[role] = layering_pairs
     if excluded_all:
         print("  дорожки, исключённые из-за рассинхрона с главным миксом:")
         for role, items in excluded_all.items():
             for item in items:
                 print(f"    {role}: {item}")
-    return main_path, stems, excluded_all, input_formats
+    return main_path, stems, excluded_all, input_formats, layering_all
 
 
 # --------------------------------------------------------------------------
@@ -495,6 +530,21 @@ def write_report(out_dir: Path, track_name: str, measurements: dict, verdicts, d
                 facts.append(f"реверб не считался: {d['reverb_skipped_reason']}")
             if d.get("vocal_analysis_error"):
                 facts.append(f"ошибка вокального анализа: {d['vocal_analysis_error']}")
+            if d.get("layering_pairs"):
+                # Блок 3 (измерение, не рекомендация — фикс ждёт Блок 8, "с
+                # выбором", наложение дублей не однозначная ошибка): дубли
+                # уже суммированы в единый сигнал role, это последний
+                # диагностический след того, КАК они соотносились до суммы
+                for lp in d["layering_pairs"]:
+                    a_name, b_name = lp["pair"]
+                    if "error" in lp:
+                        facts.append(f"наложение дублей {a_name} vs {b_name}: не удалось измерить ({lp['error']})")
+                        continue
+                    facts.append(
+                        f"наложение дублей {a_name} vs {b_name}: расхождение по времени "
+                        f"{lp['time_divergence_ms_median']:.1f}мс, по питчу {lp['pitch_divergence_cents_median']:.1f}¢ "
+                        f"(медианы), верхняя оценка риска гребёнки {lp['comb_risk_upper_bound']:.0%} "
+                        f"(измерение, не рекомендация — см. roadmap.md Блок 3/8)")
             if facts:
                 diag_lines.append(f"  {role}: " + "; ".join(facts))
         if len(diag_lines) == 1:
@@ -582,6 +632,7 @@ def process_item(item: Path, preset, deep_psychoacoustics: bool, preset_name: st
         work_dir = Path(tmp)
         excluded_tracks = {}
         input_formats = {}
+        layering_all = {}
         # ТЗ-05 Д: хэш файла пресета в отчёте — какой именно набор зон
         # (включая формулировки/диапазоны) использовался в этом прогоне,
         # без хэша не отличить "amber.json на момент прогона" от более
@@ -604,7 +655,7 @@ def process_item(item: Path, preset, deep_psychoacoustics: bool, preset_name: st
                                  is_ml_separated=True)
         elif item.is_dir():
             print("  режим: трек-аут (реальные дорожки)")
-            mix_path, stems, excluded_tracks, input_formats = classify_trackout(item, work_dir)
+            mix_path, stems, excluded_tracks, input_formats, layering_all = classify_trackout(item, work_dir)
             is_ml_separated = False
             run_metadata["is_ml_separated"] = False
         else:
@@ -617,6 +668,13 @@ def process_item(item: Path, preset, deep_psychoacoustics: bool, preset_name: st
             diagnostics.setdefault("_trackout", {})["excluded_unaligned_tracks"] = excluded_tracks
         if input_formats:
             diagnostics.setdefault("_trackout", {})["input_formats"] = input_formats
+        for role, pairs in layering_all.items():
+            # роль уже есть в diagnostics — track_avg_metrics вызывался на
+            # СУММЕ дублей этой роли (analyze_all_sources), layering же
+            # посчитан ДО суммирования, на отдельных дублях (см.
+            # _pairwise_layering) — два разных факта об одной роли, не
+            # конфликтуют, просто разные ключи одного диагностического словаря
+            diagnostics.setdefault(role, {})["layering_pairs"] = pairs
         diagnostics["_run"] = run_metadata
         verdicts = evaluate(measurements, preset)
         write_report(out_dir, item.stem, measurements, verdicts, diagnostics)

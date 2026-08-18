@@ -41,7 +41,7 @@ def test_mixed_sr_bitdepth_trackout_does_not_crash(tmp_path):
 
     work_dir = tmp_path / "work"
     work_dir.mkdir()
-    main_path, stems, excluded, input_formats = orchestrate.classify_trackout(folder, work_dir)
+    main_path, stems, excluded, input_formats, layering_all = orchestrate.classify_trackout(folder, work_dir)
 
     assert sf.info(str(main_path)).samplerate == 44100
     for p in stems.values():
