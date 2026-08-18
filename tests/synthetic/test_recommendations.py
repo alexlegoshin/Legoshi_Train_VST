@@ -97,7 +97,7 @@ def test_sorting_by_timeline_then_confidence():
                                  "clipped_regions_s": [_clip_region(5.0, 5.01)]},
             "hum_candidates": [{"freq_hz": 50.0, "stability_score": 5.0}],
         },
-        "_run": {"preset_name": "amber"},  # служебная запись, должна быть пропущена
+        "_run": {"preset_name": "legoshi_amber"},  # служебная запись, должна быть пропущена
     }
     recs = all_restoration_recommendations(all_diag)
     # ожидание: клиппинг на 5с (bass) -> клиппинг на 20с (vocals) -> гул (без отрезка, в конце)

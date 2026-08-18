@@ -1,13 +1,14 @@
 """ТЗ-03 §6 / lamp-dictionary.md TODO #3: формализация словаря «слово →
 метрика» в код. Числа живут в JSON-пресете (`Project/presets/*.json`,
-по умолчанию `amber.json`) — ОДИН источник правды, не дублируется здесь
-литералом. Человекочитаемое обоснование того же словаря с p-value —
+по умолчанию `legoshi_amber.json` — оригинальный пресет разработчика,
+"Legoshi Amber") — ОДИН источник правды, не дублируется здесь литералом.
+Человекочитаемое обоснование того же словаря с p-value —
 `_notes/lamp-dictionary.md`; правишь диапазон — правь пресет, коммент в
 lamp-dictionary.md держи в синхроне отдельно (это объяснение, не данные).
 
 Использование:
     from analysis.verdict import evaluate, load_preset
-    preset = load_preset()  # amber.json по умолчанию
+    preset = load_preset()  # legoshi_amber.json по умолчанию
     measurements = {
         ("spectral_slope", "mix"): -5.55,                      # целый трек — число
         ("real_roughness", "vocals"): window_series,            # окна — pandas.Series
@@ -31,7 +32,7 @@ except ImportError:
     pd = None
 
 PRESETS_DIR = Path(__file__).resolve().parents[1] / "presets"
-DEFAULT_PRESET = "amber"
+DEFAULT_PRESET = "legoshi_amber"
 
 
 class Reliability(Enum):
@@ -226,7 +227,7 @@ def evaluate(measurements: dict, preset: Optional[list[MetricZone]] = None) -> l
     """measurements: {(metric, source): значение}. Значение — число
     (среднее по треку) или pandas.Series с сырыми значениями по окнам
     (для window-метрик — тогда берём медиану + долю окон в зоне).
-    preset: список MetricZone (см. load_preset) — по умолчанию DICTIONARY (amber.json)."""
+    preset: список MetricZone (см. load_preset) — по умолчанию DICTIONARY (legoshi_amber.json)."""
     out = []
     for zone in (preset if preset is not None else DICTIONARY):
         key = (zone.metric, zone.source)

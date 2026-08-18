@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Amber — консольный оркестратор. Кладёшь в Project/import/:
+"""Legoshi Train — консольный оркестратор. Кладёшь в Project/import/:
 
   * ОДИН аудиофайл — полный микс, отдельных дорожек нет.
     Запускается Demucs (htdemucs_ft), дальше метрики на миксе +
@@ -14,12 +14,13 @@
     точнее Demucs, деление не нужно.
 
 Результат — в Project/output/<имя>_<таймстемп>/: report.txt (читаемый
-вердикт по пресету Amber) и measurements.json (сырые числа).
+вердикт по пресету Legoshi Amber — оригинальный пресет разработчика,
+presets/legoshi_amber.json) и measurements.json (сырые числа).
 
 Запуск:
     .venv/bin/python Project/orchestrate.py                  # все новые файлы/папки в import/
     .venv/bin/python Project/orchestrate.py "мой трек.wav"    # конкретный файл из import/
-    .venv/bin/python Project/orchestrate.py --preset amber --deep-psychoacoustics
+    .venv/bin/python Project/orchestrate.py --preset legoshi_amber --deep-psychoacoustics
 """
 import argparse
 import hashlib
@@ -462,7 +463,7 @@ def write_report(out_dir: Path, track_name: str, measurements: dict, verdicts, d
                        f"(измерено {len(with_data)} из {len(measurable)} применимых зон, меньше половины — "
                        f"единый процент был бы обманчив, ТЗ-05 Б7)\n\n")
 
-    header = (f"Amber — анализ «{track_name}»\n{datetime.now().isoformat(timespec='seconds')}\n\n"
+    header = (f"Legoshi Train — анализ «{track_name}»\n{datetime.now().isoformat(timespec='seconds')}\n\n"
               f"{run_line}"
               f"{score_line}"
               f"Зон с измерением: {len(with_data)}/{len(measurable)} применимых "
@@ -739,20 +740,20 @@ def write_report(out_dir: Path, track_name: str, measurements: dict, verdicts, d
     print(f"  -> {out_dir / 'measurements.json'}")
 
 
-def process_item(item: Path, preset, deep_psychoacoustics: bool, preset_name: str = "amber"):
+def process_item(item: Path, preset, deep_psychoacoustics: bool, preset_name: str = "legoshi_amber"):
     print(f"\n=== {item.name} ===")
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_dir = OUTPUT_DIR / f"{item.stem}_{ts}"
 
-    with tempfile.TemporaryDirectory(prefix="amber_") as tmp:
+    with tempfile.TemporaryDirectory(prefix="legoshi_train_") as tmp:
         work_dir = Path(tmp)
         excluded_tracks = {}
         input_formats = {}
         layering_all = {}
         # ТЗ-05 Д: хэш файла пресета в отчёте — какой именно набор зон
         # (включая формулировки/диапазоны) использовался в этом прогоне,
-        # без хэша не отличить "amber.json на момент прогона" от более
-        # поздней правки с тем же именем
+        # без хэша не отличить "legoshi_amber.json на момент прогона" от
+        # более поздней правки с тем же именем
         preset_path = PRESETS_DIR / f"{preset_name}.json"
         preset_hash = hashlib.sha256(preset_path.read_bytes()).hexdigest()[:12] if preset_path.exists() else "?"
         run_metadata = dict(demucs_model=None, demucs_shifts=None,
@@ -800,7 +801,7 @@ def process_item(item: Path, preset, deep_psychoacoustics: bool, preset_name: st
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("target", nargs="?", help="имя файла/папки внутри Project/import/ (по умолчанию — все)")
-    ap.add_argument("--preset", default="amber", help="имя пресета в Project/presets/ (без .json)")
+    ap.add_argument("--preset", default="legoshi_amber", help="имя пресета в Project/presets/ (без .json)")
     ap.add_argument("--deep-psychoacoustics", action="store_true",
                      help="настоящий sharpness/roughness (MoSQITo) на вокале — медленно, ~10-15 мин/трек")
     args = ap.parse_args()

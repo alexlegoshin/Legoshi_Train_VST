@@ -109,7 +109,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     for role in ROLES:
         ap.add_argument(f"--{role}", nargs="*", default=[], help=f"пути к файлам роли {role}")
-    ap.add_argument("--preset", default="amber")
+    ap.add_argument("--preset", default="legoshi_amber")
     ap.add_argument("--out", default=str(DEFAULT_OUT))
     args = ap.parse_args()
 

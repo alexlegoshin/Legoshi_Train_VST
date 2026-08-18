@@ -78,7 +78,7 @@ def measurement_keys(slices):
     return set(measurements.keys())  # {(metric, role), ...}
 
 
-@pytest.mark.parametrize("preset_name", ["amber"])
+@pytest.mark.parametrize("preset_name", ["legoshi_amber"])
 def test_every_zone_key_exists_in_orchestrator_output(preset_name, measurement_keys):
     zones = load_preset(preset_name)
     missing = [f"{z.source}/{z.metric} ({z.granularity})" for z in zones

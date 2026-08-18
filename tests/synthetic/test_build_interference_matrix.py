@@ -43,7 +43,7 @@ def test_build_matrix_produces_rows_for_zone_relevant_metrics(tmp_path):
     path = tmp_path / "mix.wav"
     sf.write(str(path), mix, SR, subtype="FLOAT")
 
-    zones = load_preset("amber")
+    zones = load_preset("legoshi_amber")
     zone_keys = {(z.metric, z.source) for z in zones}
 
     rows = build_matrix({"mix": [path]}, tmp_path, zone_keys)
