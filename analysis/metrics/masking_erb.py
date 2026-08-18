@@ -76,13 +76,33 @@ def apply_temporal_masking(energy_bt, hop_s, forward_ms=200, backward_ms=20):
     bwd_n = max(1, int(round(backward_ms / 1000 / hop_s)))
     tau_fwd = fwd_n / 3.0  # постоянная спада, чтобы 200мс было "довольно распавшимся" хвостом
     kernel_fwd = np.exp(-np.arange(0, fwd_n) / tau_fwd)
+    # БАГ (найден код-ревью, исправлен): коэффициент 0.3 применялся ДВАЖДЫ —
+    # один раз тут (baked into kernel_bwd), второй раз ниже при сборке
+    # full_kernel (kernel_bwd[::-1] * 0.3) — итоговый пик обратного ядра
+    # получался 0.3*0.3=0.09 вместо задуманных 0.3 (втрое слабее, чем
+    # заявляет комментарий "слабее и короче"). Коэффициент живёт здесь,
+    # в full_kernel больше не умножаем повторно.
     kernel_bwd = np.exp(-np.arange(0, bwd_n) / (bwd_n / 2.0)) * 0.3  # слабее и короче
-    full_kernel = np.concatenate([kernel_bwd[::-1] * 0.3, [1.0], kernel_fwd[1:]])
+    full_kernel = np.concatenate([kernel_bwd[::-1], [1.0], kernel_fwd[1:]])
     full_kernel /= full_kernel.max()
 
+    # БАГ (найден код-ревью, исправлен): mode="same" центрирует свёртку по
+    # ГЕОМЕТРИЧЕСКОЙ середине ядра (len(full_kernel)//2), а наше ядро
+    # намеренно асимметрично — bwd_n обратных отсчётов, потом центр-маркер,
+    # потом fwd_n-1 прямых. Смысловой центр (индекс маскера, offset=0) —
+    # это индекс bwd_n, а не геометрическая середина. При типичных
+    # forward_ms=200/backward_ms=20 (fwd_n на порядок больше bwd_n) весь
+    # отклик получался сдвинут на десятки кадров (десятки-сотни мс) РАНЬШЕ
+    # реального маскера — "прямая" (forward) маскировка, которая должна
+    # тянуться ПОСЛЕ маскера, фактически размазывалась в основном ДО него.
+    # Явно вырезаем окно, выровненное по смысловому центру bwd_n, вместо
+    # того чтобы доверять автоматическому центрированию numpy для
+    # несимметричного ядра.
+    center = bwd_n
     out = np.zeros_like(energy_bt)
     for b in range(n_bands):
-        out[b] = np.convolve(energy_bt[b], full_kernel, mode="same")
+        full_conv = np.convolve(energy_bt[b], full_kernel, mode="full")
+        out[b] = full_conv[center:center + n_frames]
     return out
 
 
