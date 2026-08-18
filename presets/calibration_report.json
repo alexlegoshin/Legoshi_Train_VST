@@ -1,0 +1,101 @@
+{
+  "rows": [
+    {
+      "legacy_metric": "band_frac_air",
+      "zone_metric": "band_frac_air_median",
+      "role": "mix",
+      "revision_idx": 10,
+      "направление": "больше",
+      "real_delta": 0.0004113131064104464,
+      "real_sign": 1,
+      "expected_sign": 1,
+      "request_realized": true
+    },
+    {
+      "legacy_metric": "band_frac_air",
+      "zone_metric": "band_frac_air_median",
+      "role": "mix",
+      "revision_idx": 15,
+      "направление": "больше",
+      "real_delta": 0.004520332795943477,
+      "real_sign": 1,
+      "expected_sign": 1,
+      "request_realized": true
+    },
+    {
+      "legacy_metric": "band_frac_air",
+      "zone_metric": "band_frac_air_median",
+      "role": "mix",
+      "revision_idx": 21,
+      "направление": "больше",
+      "real_delta": 0.00029711237274471745,
+      "real_sign": 1,
+      "expected_sign": 1,
+      "request_realized": true
+    },
+    {
+      "legacy_metric": "band_frac_air",
+      "zone_metric": "band_frac_air_median",
+      "role": "mix",
+      "revision_idx": 23,
+      "направление": "больше",
+      "real_delta": 0.00029711237274471745,
+      "real_sign": 1,
+      "expected_sign": 1,
+      "request_realized": true
+    },
+    {
+      "legacy_metric": "band_frac_air",
+      "zone_metric": "band_frac_air_median",
+      "role": "mix",
+      "revision_idx": 46,
+      "направление": "больше",
+      "real_delta": 0.00018250501253653205,
+      "real_sign": 1,
+      "expected_sign": 1,
+      "request_realized": true
+    }
+  ],
+  "summary": {
+    "bell_cut_lowmid": {
+      "agreement_fraction": 1.0,
+      "n": 5
+    },
+    "bell_boost_lowmid": {
+      "agreement_fraction": 0.0,
+      "n": 5
+    },
+    "bell_cut_presence": {
+      "agreement_fraction": 1.0,
+      "n": 5
+    },
+    "bell_boost_presence": {
+      "agreement_fraction": 0.0,
+      "n": 5
+    },
+    "shelf_air_boost": {
+      "agreement_fraction": 1.0,
+      "n": 5
+    },
+    "shelf_air_cut": {
+      "agreement_fraction": 0.0,
+      "n": 5
+    },
+    "shelf_low_boost": {
+      "agreement_fraction": 0.0,
+      "n": 5
+    },
+    "shelf_low_cut": {
+      "agreement_fraction": 1.0,
+      "n": 5
+    },
+    "compressor_soft": {
+      "agreement_fraction": 0.0,
+      "n": 5
+    },
+    "saturation_soft": {
+      "agreement_fraction": 0.0,
+      "n": 5
+    }
+  }
+}
