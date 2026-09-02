@@ -1,0 +1,1819 @@
+{
+  "catalog_name": "Alexey's plugin rack",
+  "description": "Личный набор плагинов + штатных устройств Ableton Live 12 Suite автора (roadmap.md, Блок 8). Не общий каталог — конкретная DAW-обвязка одного человека. Сторонние плагины собраны и разобраны 19.08.2026, штатные устройства Ableton (Live 12 Suite, всё перечисленное доступно) добавлены 02.09.2026 (_notes/ableton-stock-catalog.md).",
+  "created": "2026-08-19",
+  "updated": "2026-09-02",
+  "caveat": "canonical_interventions — сопоставление ТОЛЬКО для текстовой рекомендации (roadmap.md: 'программа никогда не применяет фикс сама — только называет точное место, параметры и категорию'), ключи те же, что Recommendation.category в analysis/recommendations.py (declip_click/declip_sustained/dehum из Блока 2, имя хода из analysis.interventions.MOVES из Блока 7) — это единственное поле, которое реально используется кодом для матчинга сегодня. canonical_op — более широкий словарь DSP-примитивов (_notes/ableton-stock-catalog.md, п.11), заготовка на будущее: когда interventions.py/Блок 6 обзаведётся новыми ходами (harmonics_even, duck_sidechain, reverb_short и т.п.), эти теги уже на месте, но СЕГОДНЯ они не проверены Блоком 6 и не участвуют в матчинге plugin_catalog.match() — не гадаем, откуда взялась связь, если её ещё нельзя измерить. mapping_confidence: exact — ручка ложится на каноническую операцию один в один; approx — направление предсказуемо, величина нет; opaque — эффект нельзя предсказать, только пробовать; null — не применимо (измерение/аранжировка/DAW-операция без стадии обработки).",
+  "stage_labels": {
+    "0": "восстановление",
+    "1": "уровни и баланс",
+    "2": "вычитающий EQ",
+    "3": "динамика",
+    "4": "добавляющий EQ и цвет",
+    "5": "пространство",
+    "M": "измерение"
+  },
+  "known_gaps": [
+    "Транзиент-шейпер отдельным плагином так и не куплен (BitterSweet планировался) — частично закрыт abl.drum_buss (ручка Transients), но тот 'спрятан' в барабанном девайсе, не универсальный инструмент.",
+    "Явного A/B-переключателя с выравниванием громкости против референса нет — закрывается вручную (дорожка с референсом + Utility на подгонку уровня)."
+  ],
+  "plugins": [
+    {
+      "id": "daw.clip_gain",
+      "name": "Clip Gain (усиление клипа)",
+      "vendor": "Ableton",
+      "kind": "daw_operation",
+      "category_tags": [
+        "levels"
+      ],
+      "mode": null,
+      "stage": [
+        "1"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": "exact",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Отвечает на диагноз: уровень дорожки/фрагмента вне зоны."
+    },
+    {
+      "id": "daw.volume_automation",
+      "name": "Огибающая громкости",
+      "vendor": "Ableton",
+      "kind": "daw_operation",
+      "category_tags": [
+        "levels",
+        "automation"
+      ],
+      "mode": null,
+      "stage": [
+        "1"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": "exact",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Отвечает на диагноз: драматургическая арка, контраст между секциями, 'слилось с предыдущим'. По правкам автора к сведению — большинство претензий были именно про баланс/громкость по секциям, не про обработку."
+    },
+    {
+      "id": "daw.pan_automation",
+      "name": "Панорама (автоматизация)",
+      "vendor": "Ableton",
+      "kind": "daw_operation",
+      "category_tags": [
+        "space",
+        "automation"
+      ],
+      "mode": null,
+      "stage": [
+        "5"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": "exact",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Отвечает на диагноз: ширина, разведение слоёв, перетекание из уха в ухо."
+    },
+    {
+      "id": "daw.clip_detune",
+      "name": "Transpose + Detune (центы) на клипе, Warp=Complex Pro, Formants",
+      "vendor": "Ableton",
+      "kind": "daw_operation",
+      "category_tags": [
+        "pitch"
+      ],
+      "mode": null,
+      "stage": [
+        "0"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "pitch_shift"
+      ],
+      "mapping_confidence": "exact",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Отвечает на диагноз: интонация отдельной ноты. Глиссандо НЕ затрагивается — двигается фрагмент целиком, не в реальном времени по всей дорожке. Приоритет над abl.auto_shift по умолчанию."
+    },
+    {
+      "id": "daw.warp_nudge",
+      "name": "Сдвиг warp-маркера / клипа",
+      "vendor": "Ableton",
+      "kind": "daw_operation",
+      "category_tags": [
+        "timing"
+      ],
+      "mode": null,
+      "stage": [
+        "0"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": "exact",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Отвечает на диагноз: расхождение дублей по времени — свести в ноль или наоборот раздвинуть до хоруса (художественный выбор, см. layering_choice)."
+    },
+    {
+      "id": "daw.group_track",
+      "name": "Группа с общей обработкой",
+      "vendor": "Ableton",
+      "kind": "daw_operation",
+      "category_tags": [
+        "routing"
+      ],
+      "mode": null,
+      "stage": [
+        "1"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": null,
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Отвечает на диагноз: общее лечение группы слоёв (все бэки разом)."
+    },
+    {
+      "id": "daw.retake",
+      "name": "Перезаписать",
+      "vendor": null,
+      "kind": "daw_operation",
+      "category_tags": [
+        "verdict"
+      ],
+      "mode": null,
+      "stage": [
+        "0"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": null,
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Отвечает на диагноз: вердикт 'не чинится обработкой'."
+    },
+    {
+      "id": "abl.spectrum",
+      "name": "Spectrum",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "measurement"
+      ],
+      "mode": "monitor",
+      "stage": [
+        "M"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": null,
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Базовый спектр, если не запущены SPAN/Prism."
+    },
+    {
+      "id": "abl.tuner",
+      "name": "Tuner",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "measurement",
+        "pitch"
+      ],
+      "mode": "monitor",
+      "stage": [
+        "M"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": null,
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Проверить строй инструмента против находки Amber о расстройке вокал-бас."
+    },
+    {
+      "id": "abl.utility",
+      "name": "Utility",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "levels",
+        "space",
+        "phase"
+      ],
+      "mode": "insert",
+      "stage": [
+        "1"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "gain",
+        "width",
+        "mono_below",
+        "polarity"
+      ],
+      "mapping_confidence": "exact",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": {
+        "Gain": "gain -> LUFS дорожки, баланс",
+        "Width": "width -> ширина стерео (S/M)",
+        "Bass Mono + частота": "mono_below -> потеря энергии при суммировании в моно по полосам",
+        "Mono": "mono_below (полный) -> моносовместимость",
+        "Left/Right invert": "polarity -> противофаза",
+        "Balance": "нет канонической операции в текущем словаре -> асимметрия энергии L/R"
+      },
+      "note": "Каждая ручка ложится на измеряемую метрику один в один — лучший кандидат для матрицы интерференции в каталоге. Left/Right invert — противофаза между пьезой и микрофоном на акустике (у автора ровно такая пара дорожек) — первое, что надо проверить одним щелчком."
+    },
+    {
+      "id": "abl.eq_eight",
+      "name": "EQ Eight",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "eq"
+      ],
+      "mode": "insert",
+      "stage": [
+        "2",
+        "4"
+      ],
+      "canonical_interventions": [
+        "bell_cut_lowmid",
+        "bell_boost_lowmid",
+        "bell_cut_presence",
+        "bell_boost_presence",
+        "shelf_air_boost",
+        "shelf_air_cut",
+        "shelf_low_boost",
+        "shelf_low_cut"
+      ],
+      "canonical_op": [
+        "bell",
+        "shelf",
+        "highpass",
+        "lowpass",
+        "notch"
+      ],
+      "mapping_confidence": "exact",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "8 полос, bell/shelf/HP/LP/notch, регулируемая Q, режимы Stereo/L-R/M-S, оверсэмплинг. Каноническая операция симулятора в чистом виде — 'колокол -2дБ на 3.1кГц, Q=1.4' переводится напрямую. Режим M-S — управление шириной ПО ПОЛОСАМ, ни один сторонний EQ автора этого не умеет."
+    },
+    {
+      "id": "abl.auto_filter",
+      "name": "Auto Filter",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "eq",
+        "modulation"
+      ],
+      "mode": "insert",
+      "stage": [
+        "4"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Envelope follower, LFO, сайдчейн. Не для коррекции, для движения."
+    },
+    {
+      "id": "abl.compressor",
+      "name": "Compressor",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "dynamics"
+      ],
+      "mode": "insert",
+      "stage": [
+        "3"
+      ],
+      "canonical_interventions": [
+        "compressor_soft"
+      ],
+      "canonical_op": [
+        "downward_comp"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Threshold/Ratio/Attack/Release/Knee/Dry-Wet/Makeup, режимы Peak/RMS/Expand, feedback."
+    },
+    {
+      "id": "abl.compressor.sidechain_ducking",
+      "name": "Compressor (сайдчейн + полосовой фильтр на сайдчейне)",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "dynamics",
+        "masking_fix"
+      ],
+      "mode": "insert",
+      "stage": [
+        "3"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "duck_sidechain"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Канонический фикс маскирования — самая частая рекомендация, которую будет выдавать блок маскирования (analysis/metrics/masking_erb.py), и ни один сторонний плагин автора так не умеет. Диагноз 'A маскирует B в 300-500Гц в припевах': компрессор на A, сайдчейн от B, полосовой фильтр 300-500 на сайдчейне — A приседает ровно в этой полосе ровно тогда, когда звучит B."
+    },
+    {
+      "id": "abl.glue_compressor",
+      "name": "Glue Compressor",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "dynamics"
+      ],
+      "mode": "insert",
+      "stage": [
+        "3"
+      ],
+      "canonical_interventions": [
+        "compressor_soft"
+      ],
+      "canonical_op": [
+        "downward_comp"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Шинный, характер SSL, Soft Clip, сайдчейн-фильтр, Range. Для группы бэков и мастер-шины."
+    },
+    {
+      "id": "abl.multiband_dynamics",
+      "name": "Multiband Dynamics",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "dynamics"
+      ],
+      "mode": "insert",
+      "stage": [
+        "3"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "downward_comp",
+        "upward_comp",
+        "band_comp"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "3 полосы, компрессия и вниз, и вверх независимо. Единственное средство под полосную динамику: 'crest factor по полосе вне зоны', 'низ-мид пляшет', 'в припевах верх зажат сильнее, чем в куплетах'."
+    },
+    {
+      "id": "abl.limiter",
+      "name": "Limiter",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "dynamics",
+        "mastering"
+      ],
+      "mode": "insert",
+      "stage": [
+        "5"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "limit"
+      ],
+      "mapping_confidence": "exact",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Live 12: True Peak, Soft Clip, режим Maximize, роутинг M/S. Ложится на true peak, PLR, PSR."
+    },
+    {
+      "id": "abl.gate",
+      "name": "Gate",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "dynamics"
+      ],
+      "mode": "insert",
+      "stage": [
+        "0"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "gate"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": true,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Threshold/Attack/Hold/Release/Lookahead, сайдчейн, Flip. Для шумового пола между фразами."
+    },
+    {
+      "id": "abl.drum_buss",
+      "name": "Drum Buss",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "dynamics",
+        "saturation"
+      ],
+      "mode": "insert",
+      "stage": [
+        "3",
+        "4"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "transient",
+        "saturate_band"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Ручка Transients — транзиент-шейпер, частично закрывает отсутствие BitterSweet (roadmap.md, известная дыра). Работает не только на барабанах. Плюс Drive, Crunch, Boom (резонансный низ)."
+    },
+    {
+      "id": "abl.roar",
+      "name": "Roar",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "saturation"
+      ],
+      "mode": "insert",
+      "stage": [
+        "4"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "saturate_band"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Единственный мультиполосный и M/S сатуратор во всём арсенале (CHOW/SDRR2/Saturation Knob красят сигнал целиком). Диагноз 'не хватает тепла в низах, верх уже яркий' — работает только Roar. Serial/parallel/multiband/mid-side, кривые Tube Preamp..Polynomial/Shards, обратная связь, матрица модуляции."
+    },
+    {
+      "id": "abl.saturator",
+      "name": "Saturator",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "saturation"
+      ],
+      "mode": "insert",
+      "stage": [
+        "4"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "saturate_band"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Кривые + Bass Shaper (Live 12, специально под низ), секция Color (частота+ширина), Dry/Wet."
+    },
+    {
+      "id": "abl.dynamic_tube",
+      "name": "Dynamic Tube",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "saturation"
+      ],
+      "mode": "insert",
+      "stage": [
+        "4"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "saturate_band"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Ламповая эмуляция с envelope, реагирует на динамику."
+    },
+    {
+      "id": "abl.erosion",
+      "name": "Erosion",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "saturation",
+        "artistic"
+      ],
+      "mode": "insert",
+      "stage": [
+        "4"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": "opaque",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": true,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Художественный, предсказать сдвиг метрик нельзя — только на задачи, сформулированные словами ('грязный соляк', 'лоу-фай переход'), никогда на числовой диагноз."
+    },
+    {
+      "id": "abl.redux",
+      "name": "Redux",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "saturation",
+        "artistic"
+      ],
+      "mode": "insert",
+      "stage": [
+        "4"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": "opaque",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": true,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Художественный, предсказать сдвиг метрик нельзя — только на задачи, сформулированные словами ('грязный соляк', 'лоу-фай переход'), никогда на числовой диагноз."
+    },
+    {
+      "id": "abl.vinyl_distortion",
+      "name": "Vinyl Distortion",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "saturation",
+        "artistic"
+      ],
+      "mode": "insert",
+      "stage": [
+        "4"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": "opaque",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": true,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Художественный, предсказать сдвиг метрик нельзя — только на задачи, сформулированные словами ('грязный соляк', 'лоу-фай переход'), никогда на числовой диагноз."
+    },
+    {
+      "id": "abl.overdrive",
+      "name": "Overdrive",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "saturation",
+        "artistic"
+      ],
+      "mode": "insert",
+      "stage": [
+        "4"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": "opaque",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": true,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Художественный, предсказать сдвиг метрик нельзя — только на задачи, сформулированные словами ('грязный соляк', 'лоу-фай переход'), никогда на числовой диагноз."
+    },
+    {
+      "id": "abl.amp",
+      "name": "Amp",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "saturation",
+        "artistic"
+      ],
+      "mode": "insert",
+      "stage": [
+        "4"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": "opaque",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": true,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Художественный, предсказать сдвиг метрик нельзя — только на задачи, сформулированные словами ('грязный соляк', 'лоу-фай переход'), никогда на числовой диагноз."
+    },
+    {
+      "id": "abl.cabinet",
+      "name": "Cabinet",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "saturation",
+        "artistic"
+      ],
+      "mode": "insert",
+      "stage": [
+        "4"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": "opaque",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": true,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Художественный, предсказать сдвиг метрик нельзя — только на задачи, сформулированные словами ('грязный соляк', 'лоу-фай переход'), никогда на числовой диагноз."
+    },
+    {
+      "id": "abl.pedal",
+      "name": "Pedal",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "saturation",
+        "artistic"
+      ],
+      "mode": "insert",
+      "stage": [
+        "4"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": "opaque",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": true,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Художественный, предсказать сдвиг метрик нельзя — только на задачи, сформулированные словами ('грязный соляк', 'лоу-фай переход'), никогда на числовой диагноз."
+    },
+    {
+      "id": "abl.reverb",
+      "name": "Reverb",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "reverb",
+        "space"
+      ],
+      "mode": "insert",
+      "stage": [
+        "5"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "reverb_short",
+        "reverb_long"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Классический алгоритмический. Predelay/Decay/Size, диффузионная сеть, HP/LP-полки на входе, Chorus, Dry/Wet. Decay 0.6-1.0с + predelay 15-25мс закрывает 'каморку, обитую поролоном'."
+    },
+    {
+      "id": "abl.hybrid_reverb",
+      "name": "Hybrid Reverb",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "reverb",
+        "space"
+      ],
+      "mode": "insert",
+      "stage": [
+        "5"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "reverb_short",
+        "reverb_long",
+        "early_reflections"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Свёрточный + алгоритмический, последовательно или параллельно, свои IR. Отдельная возможность: снять IR помещения, где писался вокал, достроить им остальные дорожки в тот же зал вместо чужого реверба."
+    },
+    {
+      "id": "abl.delay",
+      "name": "Delay",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "delay",
+        "space"
+      ],
+      "mode": "insert",
+      "stage": [
+        "5"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "delay"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Ping-pong, фильтр, модуляция. Под 'плавное перетекание из уха в ухо'."
+    },
+    {
+      "id": "abl.echo",
+      "name": "Echo",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "delay",
+        "space"
+      ],
+      "mode": "insert",
+      "stage": [
+        "5"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "delay"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Дилей со встроенным ревербом, дакингом, фильтром, Wobble, гейтом. Дакинг важен: эхо приседает под сухим сигналом — хвост есть, разборчивость не размыта. Лекарство от 'слишком мокро, но хвост нужен'."
+    },
+    {
+      "id": "abl.chorus_ensemble",
+      "name": "Chorus-Ensemble",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "modulation",
+        "space"
+      ],
+      "mode": "insert",
+      "stage": [
+        "5"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": true,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Резерв, если естественного расхождения дублей не хватает. Автор явно хочет хорус голосом, а не плагином."
+    },
+    {
+      "id": "abl.phaser_flanger",
+      "name": "Phaser-Flanger",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "modulation",
+        "artistic"
+      ],
+      "mode": "insert",
+      "stage": [
+        "5"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": "opaque",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": true,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Художественный, предсказать сдвиг метрик нельзя."
+    },
+    {
+      "id": "abl.spectral_resonator",
+      "name": "Spectral Resonator",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "modulation",
+        "artistic"
+      ],
+      "mode": "insert",
+      "stage": [
+        "5"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": "opaque",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": true,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Художественный, предсказать сдвиг метрик нельзя."
+    },
+    {
+      "id": "abl.spectral_time",
+      "name": "Spectral Time",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "modulation",
+        "artistic"
+      ],
+      "mode": "insert",
+      "stage": [
+        "5"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": "opaque",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": true,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Художественный, предсказать сдвиг метрик нельзя."
+    },
+    {
+      "id": "abl.auto_shift",
+      "name": "Auto Shift",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "pitch"
+      ],
+      "mode": "insert",
+      "stage": [
+        "0"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "pitch_shift"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": true,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": "12.1",
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Коррекция питча в реальном времени: вибрато, транспонирование, форманты, привязка к тональности проекта, ведение по MIDI. ОБЯЗАТЕЛЬНОЕ ПРЕДУПРЕЖДЕНИЕ: работает по всей дорожке в реальном времени и потому умеет выпрямлять глиссандо — ровно то, за что автор семь раз предъявлял инженеру сведения. Применять только точечно, на отрезанных клипах с проблемными нотами. По умолчанию советчик предлагает daw.clip_detune, Auto Shift — только когда нот много и правка ручная нерентабельна."
+    },
+    {
+      "id": "abl.shifter",
+      "name": "Shifter",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "pitch",
+        "artistic"
+      ],
+      "mode": "insert",
+      "stage": [
+        "4"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "pitch_shift"
+      ],
+      "mapping_confidence": "opaque",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": true,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Сдвиг питча, сдвиг частоты, кольцевая модуляция."
+    },
+    {
+      "id": "abl.audio_effect_rack",
+      "name": "Audio Effect Rack",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "rack",
+        "meta"
+      ],
+      "mode": "insert",
+      "stage": null,
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": null,
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Мета-запись, не отдельная операция. Цепи с зонами по частоте + Chain Selector + макроконтролы — конструктор, не устройство. Советчик должен уметь предлагать не только 'поставь X', но и 'собери рэк вот так' (см. abl.rack.* ниже)."
+    },
+    {
+      "id": "abl.rack.parallel_compression",
+      "name": "Rack: параллельная компрессия",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "dynamics",
+        "rack"
+      ],
+      "mode": "insert",
+      "stage": [
+        "3"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "upward_comp"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Две цепи в Audio Effect Rack: одна сжатая, вторая сухая, смешать макроконтролом."
+    },
+    {
+      "id": "abl.rack.multiband_wrapper",
+      "name": "Rack: мультиполосная обработка чем угодно",
+      "vendor": "Ableton",
+      "kind": "stock_device",
+      "category_tags": [
+        "rack"
+      ],
+      "mode": "insert",
+      "stage": null,
+      "canonical_interventions": [],
+      "canonical_op": [
+        "band_comp"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Разложить по частотным зонам Chain Selector'ом, в каждую зону — свой обработчик (не только динамика/сатурация Live — что угодно вставное)."
+    },
+    {
+      "id": "3p.bertom_eq_curve",
+      "name": "Bertom EQ Curve Analyzer",
+      "vendor": "Bertom Audio",
+      "kind": "third_party",
+      "category_tags": [
+        "measurement",
+        "eq"
+      ],
+      "mode": "monitor",
+      "stage": [
+        "M"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": null,
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Разница спектральных кривых против референса — ручной A/B по тону, не автоматизируемо."
+    },
+    {
+      "id": "3p.camelcrusher",
+      "name": "CamelCrusher",
+      "vendor": "Camel Audio",
+      "kind": "third_party",
+      "category_tags": [
+        "saturation",
+        "distortion",
+        "dynamics",
+        "artistic"
+      ],
+      "mode": "insert",
+      "stage": [
+        "4"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": "opaque",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": true,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Два типа дисторшна + фильтр + компрессор сразу, не разложить на одну каноническую операцию. Для 'грязного соляка' из ТЗ — художественно, не по метрике."
+    },
+    {
+      "id": "3p.chowtapemodel",
+      "name": "CHOWTapeModel",
+      "vendor": "CHOW DSP / Jatin Chowdhury",
+      "kind": "third_party",
+      "category_tags": [
+        "saturation",
+        "tape"
+      ],
+      "mode": "insert",
+      "stage": [
+        "4"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "saturate_band"
+      ],
+      "mapping_confidence": "opaque",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Лента: гистерезис + смягчение транзиентов + завал верха + детонация одной ручкой Drive — эффекты физически связаны, magnitude непредсказуема (в отличие от saturation_soft в interventions.py — чистый tanh без побочных эффектов)."
+    },
+    {
+      "id": "3p.rx11",
+      "name": "iZotope RX 11",
+      "vendor": "iZotope",
+      "kind": "third_party",
+      "category_tags": [
+        "restoration",
+        "declip",
+        "dehum",
+        "denoise",
+        "spectral_repair"
+      ],
+      "mode": "offline",
+      "stage": [
+        "0"
+      ],
+      "canonical_interventions": [
+        "declip_click",
+        "declip_sustained",
+        "dehum"
+      ],
+      "canonical_op": [],
+      "mapping_confidence": "exact",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Работает над файлами до сведения (стадия 0), не вставкой в микс. Declip/De-hum матчатся напрямую на текущие категории Блока 2. De-noise/Spectral Repair/Music Rebalance — реальные модули без кода-категории под них ещё."
+    },
+    {
+      "id": "3p.sdrr2",
+      "name": "Klanghelm SDRR2",
+      "vendor": "Klanghelm",
+      "kind": "third_party",
+      "category_tags": [
+        "saturation",
+        "harmonics",
+        "tube",
+        "desk"
+      ],
+      "mode": "insert",
+      "stage": [
+        "4"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "harmonics_even",
+        "harmonics_odd"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "4 несовместимых режима (Tube/Digi/Fuzz/Desk). Digi раздельно управляет чётными/нечётными гармониками — потенциально самый измеримый саб-режим, но БЕЗ подтверждения Блоком 6: в interventions.py сейчас нет хода 'впрыск чётных/нечётных гармоник раздельно' (saturation_soft — симметричный tanh, только нечётные). Нужен новый MOVE прежде чем поднимать mapping_confidence до exact."
+    },
+    {
+      "id": "3p.dragonfly_er",
+      "name": "Dragonfly Early Reflections",
+      "vendor": "Michael Willis (Dragonfly)",
+      "kind": "third_party",
+      "category_tags": [
+        "reverb",
+        "space",
+        "early_reflections"
+      ],
+      "mode": "insert",
+      "stage": [
+        "5"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "early_reflections"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Ранние отражения без хвоста — приближение источника без ощущения комнаты."
+    },
+    {
+      "id": "3p.dragonfly_plate",
+      "name": "Dragonfly Plate",
+      "vendor": "Michael Willis (Dragonfly)",
+      "kind": "third_party",
+      "category_tags": [
+        "reverb",
+        "space"
+      ],
+      "mode": "insert",
+      "stage": [
+        "5"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "reverb_short"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Короткий, естественный."
+    },
+    {
+      "id": "3p.dragonfly_room",
+      "name": "Dragonfly Room",
+      "vendor": "Michael Willis (Dragonfly)",
+      "kind": "third_party",
+      "category_tags": [
+        "reverb",
+        "space"
+      ],
+      "mode": "insert",
+      "stage": [
+        "5"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "reverb_short"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Короткий, естественный."
+    },
+    {
+      "id": "3p.dragonfly_hall",
+      "name": "Dragonfly Hall",
+      "vendor": "Michael Willis (Dragonfly)",
+      "kind": "third_party",
+      "category_tags": [
+        "reverb",
+        "space"
+      ],
+      "mode": "insert",
+      "stage": [
+        "5"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "reverb_long"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Большой хвост."
+    },
+    {
+      "id": "3p.saturation_knob",
+      "name": "Saturation Knob",
+      "vendor": "Softube",
+      "kind": "third_party",
+      "category_tags": [
+        "saturation"
+      ],
+      "mode": "insert",
+      "stage": [
+        "4"
+      ],
+      "canonical_interventions": [
+        "saturation_soft"
+      ],
+      "canonical_op": [
+        "saturate_band"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Одна ручка, минимум побочных эффектов по описанию — структурно ближе всего к чистому tanh-вейвшейперу interventions.py, чем лента/пульт/CamelCrusher. НЕ эмпирически подтверждено (см. caveat каталога), лучшая доступная аппроксимация."
+    },
+    {
+      "id": "3p.splice_instrument",
+      "name": "Splice INSTRUMENT",
+      "vendor": "Splice",
+      "kind": "third_party",
+      "category_tags": [
+        "arrangement",
+        "sample_library"
+      ],
+      "mode": "insert",
+      "stage": null,
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": null,
+      "excluded_from_corrective": true,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Ромплер на библиотеках Spitfire — сочинение партий, не коррекция. Явно исключён из корректирующего маппинга: советчик не должен предлагать синтезатор в ответ на 'не хватает низа'."
+    },
+    {
+      "id": "3p.surge_xt",
+      "name": "Surge XT",
+      "vendor": "Surge Synth Team",
+      "kind": "third_party",
+      "category_tags": [
+        "arrangement",
+        "synth"
+      ],
+      "mode": "insert",
+      "stage": null,
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": null,
+      "excluded_from_corrective": true,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Синтезатор — сочинение, не коррекция."
+    },
+    {
+      "id": "3p.surge_xt_fx",
+      "name": "Surge XT Effects",
+      "vendor": "Surge Synth Team",
+      "kind": "third_party",
+      "category_tags": [
+        "eq",
+        "dynamics",
+        "saturation",
+        "reverb",
+        "modulation"
+      ],
+      "mode": "insert",
+      "stage": null,
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": "opaque",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Отдельный от синтезатора FX-рэк (реверб/дисторшн/дилей/хорус/EQ/компрессор) — не разобран отдельно ни в одном из двух проходов. Конкретные модули под конкретные ходы не сопоставлены — требует отдельного прохода, если понадобится."
+    },
+    {
+      "id": "3p.tal_reverb4",
+      "name": "TAL Reverb 4",
+      "vendor": "TAL-Togu Audio Line",
+      "kind": "third_party",
+      "category_tags": [
+        "reverb",
+        "space"
+      ],
+      "mode": "insert",
+      "stage": [
+        "5"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "reverb_short"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Второй характер пластинчатого ревера (альтернатива Dragonfly Plate)."
+    },
+    {
+      "id": "3p.kotelnikov",
+      "name": "TDR Kotelnikov",
+      "vendor": "Tokyo Dawn Labs",
+      "kind": "third_party",
+      "category_tags": [
+        "dynamics",
+        "compressor"
+      ],
+      "mode": "insert",
+      "stage": [
+        "3"
+      ],
+      "canonical_interventions": [
+        "compressor_soft"
+      ],
+      "canonical_op": [
+        "downward_comp"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Прозрачный компрессор на шину/мастер, не окрашивает намеренно — структурно ближе всего к interventions.py::compressor_soft (feedforward, без добавленного характера)."
+    },
+    {
+      "id": "3p.molotok",
+      "name": "TDR Molotok",
+      "vendor": "Tokyo Dawn Labs",
+      "kind": "third_party",
+      "category_tags": [
+        "dynamics",
+        "compressor"
+      ],
+      "mode": "insert",
+      "stage": [
+        "3"
+      ],
+      "canonical_interventions": [
+        "compressor_soft"
+      ],
+      "canonical_op": [
+        "downward_comp"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "VCA-характер, панч и 'схватывание' — направление (сжатие) предсказуемо, величина/окраска сверх чистого gain reduction — нет."
+    },
+    {
+      "id": "3p.nova",
+      "name": "TDR Nova",
+      "vendor": "Tokyo Dawn Labs",
+      "kind": "third_party",
+      "category_tags": [
+        "eq",
+        "dynamics"
+      ],
+      "mode": "insert",
+      "stage": [
+        "2",
+        "4"
+      ],
+      "canonical_interventions": [
+        "bell_cut_lowmid",
+        "bell_boost_lowmid",
+        "bell_cut_presence",
+        "bell_boost_presence",
+        "shelf_low_boost",
+        "shelf_low_cut",
+        "shelf_air_boost",
+        "shelf_air_cut"
+      ],
+      "canonical_op": [
+        "bell",
+        "shelf"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "В списке автора значилось как 'Nove' — у Tokyo Dawn Labs такого продукта нет, весь функционал (статика + частотно-зависимая компрессия + де-эссер), разобранный в первом проходе Опуса, соответствует TDR Nova; считаем опечаткой, уточнить у автора при случае. Статический режим — обычный параметрический EQ (bell+shelf на каждой полосе). Динамический режим (частотно-зависимая компрессия/де-эссер) отдельным ходом в interventions.py не покрыт."
+    },
+    {
+      "id": "3p.prism",
+      "name": "TDR Prism",
+      "vendor": "Tokyo Dawn Labs",
+      "kind": "third_party",
+      "category_tags": [
+        "measurement",
+        "masking"
+      ],
+      "mode": "monitor",
+      "stage": [
+        "M"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": null,
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Перцептивный анализатор маскирования (ISO/IEC 13818-7) в реальном времени, до 4 графиков одновременно. Единственный инструмент в наборе, частично компенсирующий то, что нельзя услышать физически: маскирование, которое Amber считает (analysis/metrics/masking_erb.py), можно увидеть здесь и проверить глазами."
+    },
+    {
+      "id": "3p.slickeq",
+      "name": "VOS SlickEQ",
+      "vendor": "Tokyo Dawn Labs",
+      "kind": "third_party",
+      "category_tags": [
+        "eq",
+        "saturation"
+      ],
+      "mode": "insert",
+      "stage": [
+        "2",
+        "4"
+      ],
+      "canonical_interventions": [
+        "bell_cut_lowmid",
+        "bell_boost_lowmid",
+        "bell_cut_presence",
+        "bell_boost_presence",
+        "shelf_low_boost",
+        "shelf_low_cut",
+        "shelf_air_boost",
+        "shelf_air_cut"
+      ],
+      "canonical_op": [
+        "bell",
+        "shelf"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "3 полосы (bass shelf / sweepable mid bell / top shelf) — тональный характер, не хирургия. Встроенная сатурация: включена — добавляет цвет поверх EQ, при сопоставлении с советчиком держать выключенной."
+    },
+    {
+      "id": "3p.freqecho",
+      "name": "FreqEcho",
+      "vendor": "Valhalla DSP",
+      "kind": "third_party",
+      "category_tags": [
+        "delay",
+        "pitch_shift",
+        "modulation",
+        "artistic"
+      ],
+      "mode": "insert",
+      "stage": [
+        "5"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "delay",
+        "pitch_shift"
+      ],
+      "mapping_confidence": "opaque",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": true,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Эхо со сдвигом частоты — психоделический эффект, художественный, не коррекция."
+    },
+    {
+      "id": "3p.spacemodulator",
+      "name": "SpaceModulator",
+      "vendor": "Valhalla DSP",
+      "kind": "third_party",
+      "category_tags": [
+        "modulation",
+        "artistic"
+      ],
+      "mode": "insert",
+      "stage": [
+        "5"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": "opaque",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": true,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Флэнжер/модуляционный эффект — художественный, не коррекция."
+    },
+    {
+      "id": "3p.supermassive",
+      "name": "Supermassive",
+      "vendor": "Valhalla DSP",
+      "kind": "third_party",
+      "category_tags": [
+        "reverb",
+        "space"
+      ],
+      "mode": "insert",
+      "stage": [
+        "5"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [
+        "reverb_long"
+      ],
+      "mapping_confidence": "approx",
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Большие хвосты."
+    },
+    {
+      "id": "3p.vital",
+      "name": "Vital",
+      "vendor": "Vital Audio",
+      "kind": "third_party",
+      "category_tags": [
+        "arrangement",
+        "synth"
+      ],
+      "mode": "insert",
+      "stage": null,
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": null,
+      "excluded_from_corrective": true,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Синтезатор — сочинение, не коррекция."
+    },
+    {
+      "id": "3p.span",
+      "name": "Voxengo SPAN",
+      "vendor": "Voxengo",
+      "kind": "third_party",
+      "category_tags": [
+        "measurement"
+      ],
+      "mode": "monitor",
+      "stage": [
+        "M"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": null,
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "Спектроанализатор + корреляция — базовая визуальная проверка, дополняет метрики Amber глазами."
+    },
+    {
+      "id": "3p.youlean_lm2",
+      "name": "Youlean Loudness Meter 2",
+      "vendor": "Youlean",
+      "kind": "third_party",
+      "category_tags": [
+        "measurement"
+      ],
+      "mode": "monitor",
+      "stage": [
+        "M"
+      ],
+      "canonical_interventions": [],
+      "canonical_op": [],
+      "mapping_confidence": null,
+      "excluded_from_corrective": false,
+      "requires_confirmation": false,
+      "artistic_only": false,
+      "last_resort": false,
+      "min_live_version": null,
+      "min_edition": null,
+      "parameter_map": null,
+      "note": "LUFS/LRA/true peak/PLR — прямая ручная сверка с loudness_dynamics.analyze_file (integrated_lufs/lra/plr/true_peak_dbfs)."
+    }
+  ]
+}

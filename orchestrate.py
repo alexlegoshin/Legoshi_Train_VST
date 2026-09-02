@@ -39,7 +39,7 @@ import numpy as np
 import pandas as pd
 import soundfile as sf
 
-from analysis import alignment, engine, recommendations, section_attribution, sections
+from analysis import alignment, engine, plugin_catalog, recommendations, section_attribution, sections
 from analysis.metrics import layering, masking_erb
 from analysis.verdict import evaluate, format_report, load_preset, Reliability, Status
 
@@ -639,7 +639,13 @@ def write_report(out_dir: Path, track_name: str, measurements: dict, verdicts, d
     # Блок 2 (Этап 1, «без выбора»): рекомендации по очистке — программа
     # только называет место, параметры и категорию, никогда не применяет
     # сама (см. roadmap.md, главный принцип)
+    # Блок 8: личный каталог плагинов (presets/plugins.json), необязателен —
+    # файла нет, enrich_with_plugins ничего не меняет, рекомендации остаются
+    # с родовой категорией, как раньше (roadmap.md, Блок 8 — программа
+    # называет категорию, каталог только подставляет конкретное имя поверх)
+    plugins_catalog = plugin_catalog.load_catalog()
     restore_recs = recommendations.all_restoration_recommendations(diagnostics or {})
+    plugin_catalog.enrich_with_plugins(restore_recs, plugins_catalog)
     if restore_recs:
         diag_lines.append("Рекомендации по очистке (Блок 2, без выбора — не применяется автоматически):")
         for r in restore_recs:
@@ -679,6 +685,7 @@ def write_report(out_dir: Path, track_name: str, measurements: dict, verdicts, d
     # (см. docstring all_taste_recommendations)
     taste_recs = recommendations.all_taste_recommendations(
         verdicts, diagnostics or {}, interference_matrix, section_profile=section_profile)
+    plugin_catalog.enrich_with_plugins(taste_recs, plugins_catalog)
     if taste_recs:
         diag_lines.append("Рекомендации по вкусовым правкам (Блок 7, с выбором — "
                             "не применяется автоматически, стадии только для читаемости):")
@@ -751,13 +758,15 @@ def write_report(out_dir: Path, track_name: str, measurements: dict, verdicts, d
     if restore_recs:
         output_json["restoration_recommendations"] = [
             dict(category=r.category, source=r.source, location_s=r.location_s,
-                 params=r.params, confidence=r.confidence, text=r.text)
+                 params=r.params, confidence=r.confidence, text=r.text,
+                 plugin_suggestion=r.plugin_suggestion)
             for r in restore_recs
         ]
     if taste_recs:
         output_json["taste_recommendations"] = [
             dict(category=r.category, source=r.source, section=r.section, stage=r.stage,
-                 params=r.params, confidence=r.confidence, text=r.text)
+                 params=r.params, confidence=r.confidence, text=r.text,
+                 plugin_suggestion=r.plugin_suggestion)
             for r in taste_recs
         ]
     (out_dir / "measurements.json").write_text(json.dumps(output_json, indent=2, ensure_ascii=False, default=str),

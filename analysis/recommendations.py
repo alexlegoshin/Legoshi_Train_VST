@@ -40,6 +40,13 @@ class Recommendation:
                                        # проверенный совместный эффект нескольких
                                        # ходов сразу — Блок 6 мерил каждый ход
                                        # отдельно, комбинации не тестировались
+    plugin_suggestion: Optional[str] = None  # Блок 8: имя(имена) плагина(ов) из
+                                               # presets/plugins.json, чей
+                                               # canonical_interventions содержит
+                                               # category — заполняется отдельным
+                                               # вызовом plugin_catalog.enrich_with_plugins,
+                                               # не здесь (каталог персональный,
+                                               # необязательный для работы рекомендателя)
 
 
 def _clipping_recommendations(source: str, clipping_detail: dict) -> list:
