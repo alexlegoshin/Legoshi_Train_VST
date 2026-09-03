@@ -80,6 +80,50 @@ def test_confidence_clamped_to_one():
     assert recs[0].confidence == 1.0
 
 
+def test_hum_windowed_produces_recommendation_with_timecode():
+    """БАГ (найден на реальном треке, исправлен): гул, найденный только в
+    части трека (hum_windowed), раньше попадал в diagnostics как факт, но
+    не в рекомендации — restoration_recommendations читала только
+    whole-track hum_candidates."""
+    diagnostics = {
+        "hum_windowed": [
+            dict(t_start=30.0, t_end=45.0,
+                 candidates=[{"freq_hz": 100.0, "freq_hz_refined": 99.98, "stability_score": 6.0}]),
+        ],
+    }
+    recs = restoration_recommendations(diagnostics, "mix")
+    assert len(recs) == 1
+    assert recs[0].category == "dehum"
+    assert recs[0].location_s == (30.0, 45.0)
+    assert recs[0].params["freq_hz"] == 100.0
+    assert "не по всей дорожке" in recs[0].text
+
+
+def test_hum_windowed_multiple_windows_each_get_own_recommendation():
+    diagnostics = {
+        "hum_windowed": [
+            dict(t_start=0.0, t_end=15.0, candidates=[{"freq_hz": 50.0, "stability_score": 4.0}]),
+            dict(t_start=45.0, t_end=60.0, candidates=[{"freq_hz": 50.0, "stability_score": 5.0}]),
+        ],
+    }
+    recs = restoration_recommendations(diagnostics, "other")
+    assert len(recs) == 2
+    assert {r.location_s for r in recs} == {(0.0, 15.0), (45.0, 60.0)}
+
+
+def test_hum_windowed_and_whole_track_are_both_reported_independently():
+    """Не должны гасить друг друга — разные находки (везде vs частично)."""
+    diagnostics = {
+        "hum_candidates": [{"freq_hz": 50.0, "stability_score": 5.0}],
+        "hum_windowed": [
+            dict(t_start=0.0, t_end=15.0, candidates=[{"freq_hz": 100.0, "stability_score": 4.0}]),
+        ],
+    }
+    recs = restoration_recommendations(diagnostics, "drums")
+    assert len(recs) == 2
+    assert {r.location_s for r in recs} == {None, (0.0, 15.0)}
+
+
 def test_sorting_by_timeline_then_confidence():
     """Двойная сортировка: сначала по позиции на таймлайне (гул без отрезка
     считается "в конце"), внутри той же позиции — по убыванию уверенности."""
@@ -114,5 +158,8 @@ if __name__ == "__main__":
     test_hum_recommendation_uses_refined_frequency_when_available()
     test_hum_recommendation_falls_back_to_raw_frequency()
     test_confidence_clamped_to_one()
+    test_hum_windowed_produces_recommendation_with_timecode()
+    test_hum_windowed_multiple_windows_each_get_own_recommendation()
+    test_hum_windowed_and_whole_track_are_both_reported_independently()
     test_sorting_by_timeline_then_confidence()
     print("Все тесты формата рекомендаций (Блок 2) прошли.")

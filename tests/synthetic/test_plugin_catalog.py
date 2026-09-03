@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from analysis.plugin_catalog import PluginEntry, enrich_with_plugins, load_catalog, match
 from analysis.recommendations import Recommendation
 
-ALL_CATEGORIES = {"declip_click", "declip_sustained", "dehum",
+ALL_CATEGORIES = {"declip_click", "declip_sustained", "dehum", "masking_fix",
                    "bell_cut_lowmid", "bell_boost_lowmid", "bell_cut_presence", "bell_boost_presence",
                    "shelf_air_boost", "shelf_air_cut", "shelf_low_boost", "shelf_low_cut",
                    "compressor_soft", "saturation_soft"}
@@ -48,16 +48,16 @@ def test_real_catalog_declip_and_dehum_match_rx11():
             f"{category} должен матчиться на RX 11 в реальном каталоге")
 
 
-def test_real_catalog_masking_fix_present_and_unmatched_today():
-    """abl.compressor.sidechain_ducking (Блок 8, известный ключевой фикс
-    маскирования) должен существовать в каталоге, но БЕЗ canonical_interventions
-    — Recommendation.category под маскирование ещё не заведён в recommendations.py,
-    честно не матчим, пока измерять нечем."""
+def test_real_catalog_masking_fix_matches_sidechain_compressor():
+    """abl.compressor.sidechain_ducking — канонический фикс маскирования
+    (Блок 4/7/8). recommendations._masking_recommendations теперь заводит
+    category="masking_fix" — каталог должен на него матчиться."""
     catalog = load_catalog()
     hits = [p for p in catalog if p.id == "abl.compressor.sidechain_ducking"]
     assert len(hits) == 1
-    assert hits[0].canonical_interventions == ()
+    assert "masking_fix" in hits[0].canonical_interventions
     assert "masking_fix" in hits[0].category_tags
+    assert match("masking_fix", catalog)[0].id == "abl.compressor.sidechain_ducking"
 
 
 def test_real_catalog_never_matches_arrangement_plugins():
@@ -139,7 +139,7 @@ if __name__ == "__main__":
     test_load_catalog_missing_file_returns_empty()
     test_real_catalog_loads_without_error()
     test_real_catalog_declip_and_dehum_match_rx11()
-    test_real_catalog_masking_fix_present_and_unmatched_today()
+    test_real_catalog_masking_fix_matches_sidechain_compressor()
     test_real_catalog_never_matches_arrangement_plugins()
     test_real_catalog_no_duplicate_ids()
     test_match_ranks_by_mapping_confidence()

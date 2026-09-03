@@ -98,12 +98,43 @@ def _hum_recommendations(source: str, hum_candidates: list) -> list:
     return out
 
 
+def _hum_windowed_recommendations(source: str, hum_windowed: list) -> list:
+    """БАГ (найден на реальном треке, исправлен): гул, найденный ТОЛЬКО в
+    части трека (engine.find_persistent_narrowband_windowed — ровно для
+    этого случая и заводился, см. roadmap.md Блок 2), раньше попадал в
+    diagnostics и печатался как факт ('наводка не по всей дорожке, а в N
+    интервалах'), но не превращался в Recommendation — _hum_recommendations
+    читала только whole-track hum_candidates, который для локального гула
+    как раз может НЕ сработать (порог stability_score>=3.0 считается по
+    всему треку сразу, локальный всплеск его может не дотянуть). Каждое
+    окно с гулом — своя рекомендация со своим таймкодом, тот же принцип,
+    что у _clipping_recommendations (один регион — одна запись)."""
+    if not hum_windowed:
+        return []
+    out = []
+    for w in hum_windowed:
+        for c in w.get("candidates", []):
+            freq = c.get("freq_hz_refined", c["freq_hz"])
+            confidence = min(1.0, c["stability_score"] / 10.0)
+            out.append(Recommendation(
+                category="dehum",
+                source=source,
+                location_s=(w["t_start"], w["t_end"]),
+                params=dict(freq_hz=round(freq, 1)),
+                confidence=confidence,
+                text=(f"[{source}] {w['t_start']:.2f}-{w['t_end']:.2f}с: гул на {freq:.1f}Гц "
+                      f"(не по всей дорожке) — нужен dehum (notch-фильтр)"),
+            ))
+    return out
+
+
 def restoration_recommendations(diagnostics: dict, source: str) -> list:
     """diagnostics — словарь ОДНОГО источника (то, что track_avg_metrics
     кладёт в diagnostics для этой роли), не весь diagnostics прогона."""
     out = []
     out.extend(_clipping_recommendations(source, diagnostics.get("clipping_detail")))
     out.extend(_hum_recommendations(source, diagnostics.get("hum_candidates")))
+    out.extend(_hum_windowed_recommendations(source, diagnostics.get("hum_windowed")))
     return out
 
 
@@ -292,6 +323,37 @@ def _layering_recommendation(role: str, pair: dict):
     )
 
 
+MASKING_FRACTION_THRESHOLD = 0.05  # тот же порог, что уже был в write_report для печати таблицы
+
+
+def _masking_recommendations(masking_diag: dict, threshold: float = MASKING_FRACTION_THRESHOLD) -> list:
+    """БАГ (найден на реальном треке, исправлен): маскирование между
+    дорожками (Блок 4, masking_erb.analyze_group) считалось и печаталось
+    как факт в отчёте ('X маскирует Y: N% замаскированных клеток'), но
+    никогда не превращалось в Recommendation — код, читающий diagnostics и
+    строящий рекомендации, просто не знал о существовании этих данных.
+    Канонический фикс — компрессор на маскере с сайдчейном от маскируемого
+    и полосовым фильтром на сайдчейне в проблемной полосе (Блок 8,
+    presets/plugins.json::abl.compressor.sidechain_ducking — единственный
+    инструмент в каталоге, который так умеет). source=маскер — это и есть
+    трек, на который физически ставится компрессор."""
+    out = []
+    for row in masking_diag.get("attribution", []) if masking_diag else []:
+        frac = row.get("fraction_of_masked_cells", 0.0)
+        if frac <= threshold:
+            continue
+        masker, masked = row["masker"], row["masked"]
+        out.append(Recommendation(
+            category="masking_fix", source=masker, location_s=None, section=None, stage="компрессия",
+            params=dict(masker=masker, masked=masked, fraction_of_masked_cells=frac),
+            confidence=round(min(1.0, frac), 2),
+            text=(f"[{masker}] маскирует [{masked}]: {frac:.0%} замаскированных TF-клеток — "
+                  f"компрессор на {masker}, сайдчейн от {masked}, полосовой фильтр на сайдчейне "
+                  f"в проблемной полосе"),
+        ))
+    return out
+
+
 def _flag_opposing_conflicts(recs: list) -> None:
     """Один и тот же физический параметр, противоположные направления,
     одна роль — реальный конфликт (не выдуманный, не требует непротестированных
@@ -311,12 +373,12 @@ def _flag_opposing_conflicts(recs: list) -> None:
 
 
 def all_taste_recommendations(verdicts: list, diagnostics: dict, interference_matrix: dict,
-                               section_profile=None) -> list:
+                               section_profile=None, masking_diag=None) -> list:
     """Полный список за один запуск (roadmap.md, Блок 7) — не одна правка
     за раз. Двойная сортировка: сначала по позиции на таймлайне (по
     старту секции, без секции — в конец), поверх — по убыванию
-    уверенности. Плюс наложение дублей (Блок 3) — тот же список,
-    художественный выбор.
+    уверенности. Плюс наложение дублей (Блок 3) и маскирование (Блок 4) —
+    тот же список.
 
     section_profile — необязательно передать явно (DataFrame секций
     mix). Если не передан, ищем в diagnostics['mix']['section_profile'] —
@@ -327,7 +389,14 @@ def all_taste_recommendations(verdicts: list, diagnostics: dict, interference_ma
     section_profile здесь, и он молча возвращал {} после pop() — двойная
     сортировка по таймлайну вырождалась в сортировку только по
     уверенности. Явный параметр — самый надёжный способ, не полагается на
-    то, что кто-то ещё не тронул diagnostics."""
+    то, что кто-то ещё не тронул diagnostics.
+
+    masking_diag — та же история: orchestrate.write_report вынимает
+    diagnostics['_masking'] через pop() ещё раньше, чем строит секцию
+    отчёта про маскирование (нужен отдельно для печати таблицы). Без
+    явного параметра эта функция вообще не увидела бы данные о
+    маскировании — ищем в diagnostics['_masking'] только как запасной
+    путь, если вызывающий код его туда ещё не трогал."""
     recs = []
     for v in verdicts:
         r = taste_recommendation_for_verdict(v, diagnostics, interference_matrix)
@@ -341,6 +410,10 @@ def all_taste_recommendations(verdicts: list, diagnostics: dict, interference_ma
             r = _layering_recommendation(role, pair)
             if r is not None:
                 recs.append(r)
+
+    if masking_diag is None:
+        masking_diag = (diagnostics or {}).get("_masking")
+    recs.extend(_masking_recommendations(masking_diag or {}))
 
     _flag_opposing_conflicts(recs)
 

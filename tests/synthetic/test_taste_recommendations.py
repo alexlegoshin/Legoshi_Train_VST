@@ -10,7 +10,7 @@ import pandas as pd
 
 from analysis.recommendations import (
     _best_covered_move, _flag_opposing_conflicts, _layering_recommendation,
-    all_taste_recommendations, taste_recommendation_for_verdict,
+    _masking_recommendations, all_taste_recommendations, taste_recommendation_for_verdict,
 )
 from analysis.verdict import MetricZone, Reliability, Status, Verdict, evaluate
 
@@ -107,6 +107,55 @@ def test_layering_recommendation_skips_error_pairs():
     assert "a.wav" in rec.text and "b.wav" in rec.text
 
 
+def test_masking_recommendations_above_threshold_only():
+    """БАГ (найден на реальном треке, исправлен): маскирование (Блок 4)
+    считалось и печаталось в отчёте, но никогда не превращалось в
+    Recommendation — этот путь просто не существовал."""
+    masking_diag = {"attribution": [
+        dict(masker="other", masked="vocals", fraction_of_masked_cells=0.71),
+        dict(masker="bass", masked="drums", fraction_of_masked_cells=0.03),  # ниже порога 5%
+    ]}
+    recs = _masking_recommendations(masking_diag)
+    assert len(recs) == 1
+    r = recs[0]
+    assert r.category == "masking_fix"
+    assert r.source == "other"  # маскер — то, на что физически ставится компрессор
+    assert r.params == dict(masker="other", masked="vocals", fraction_of_masked_cells=0.71)
+    assert r.confidence == 0.71
+    assert r.stage == "компрессия"
+    assert "other" in r.text and "vocals" in r.text and "сайдчейн" in r.text
+
+
+def test_masking_recommendations_empty_when_no_diag():
+    assert _masking_recommendations({}) == []
+    assert _masking_recommendations(None) == []
+
+
+def test_all_taste_recommendations_includes_masking_via_explicit_param():
+    masking_diag = {"attribution": [
+        dict(masker="other", masked="vocals", fraction_of_masked_cells=0.71),
+    ]}
+    recs = all_taste_recommendations([], {}, {}, masking_diag=masking_diag)
+    assert len(recs) == 1
+    assert recs[0].category == "masking_fix"
+
+
+def test_all_taste_recommendations_masking_survives_diagnostics_pop():
+    """Та же мутация, что уже ловили на section_profile (см. тест ниже,
+    diagnostics_mutated) — orchestrate.write_report вынимает
+    diagnostics['_masking'] через pop() раньше, чем строит рекомендации.
+    Явный параметр masking_diag должен обходить эту мутацию так же."""
+    diagnostics = {"_masking": {"attribution": [
+        dict(masker="other", masked="vocals", fraction_of_masked_cells=0.71),
+    ]}}
+    masking_diag = diagnostics.pop("_masking", None)
+    assert "_masking" not in diagnostics
+
+    recs = all_taste_recommendations([], diagnostics, {}, masking_diag=masking_diag)
+    assert len(recs) == 1
+    assert recs[0].category == "masking_fix"
+
+
 def test_flag_opposing_conflicts_marks_both_sides_same_role_only():
     from analysis.recommendations import Recommendation
     r1 = Recommendation(category="bell_cut_lowmid", source="mix", location_s=None,
@@ -184,6 +233,10 @@ if __name__ == "__main__":
     test_taste_recommendation_no_move_when_uncovered()
     test_taste_recommendation_attributes_window_zone_to_worst_section()
     test_layering_recommendation_skips_error_pairs()
+    test_masking_recommendations_above_threshold_only()
+    test_masking_recommendations_empty_when_no_diag()
+    test_all_taste_recommendations_includes_masking_via_explicit_param()
+    test_all_taste_recommendations_masking_survives_diagnostics_pop()
     test_flag_opposing_conflicts_marks_both_sides_same_role_only()
     test_all_taste_recommendations_sorts_by_section_then_confidence()
     test_all_taste_recommendations_sorts_correctly_even_after_diagnostics_mutated()

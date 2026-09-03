@@ -383,7 +383,7 @@
       "stage": [
         "3"
       ],
-      "canonical_interventions": [],
+      "canonical_interventions": ["masking_fix"],
       "canonical_op": [
         "duck_sidechain"
       ],

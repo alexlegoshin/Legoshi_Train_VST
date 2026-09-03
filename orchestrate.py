@@ -367,6 +367,23 @@ def analyze_all_sources(mix_path: Path, stems: dict, deep_psychoacoustics: bool,
                 continue
             if wdf[col].notna().sum() == 0:
                 continue
+            if col == "warmth_ratio":
+                # БАГ (найден на реальном треке, исправлен): psychoacoustic.
+                # quick_metrics уже положил warmth_ratio под этим же ключом
+                # (metric, role) выше, в track_avg_metrics — одно число на
+                # весь трек. legoshi_amber.json объявляет зону warmth_ratio/
+                # mix с granularity="track_avg", ждёт именно это число. Без
+                # пропуска здесь оконная Series молча перезаписывала бы его
+                # медианой по окнам — другая величина под тем же именем
+                # (на реальном треке разница была не шумом: 19.6 против
+                # 23.3). Ни одна зона нигде не просит warmth_ratio на уровне
+                # окна ни для одной роли — оконную версию просто не
+                # публикуем под этим именем, track_avg-число остаётся как
+                # было. harshness сюда не попадает намеренно: там наоборот,
+                # единственная зона (vocals) объявлена как granularity=
+                # "window" и ждёт именно оконную медиану — эта перезапись
+                # для неё корректна и нужна.
+                continue
             measurements[(col, role)] = wdf[col]
 
         # Блок 5: атрибуция по (роль, секция) — переиспользует уже
@@ -684,7 +701,8 @@ def write_report(out_dir: Path, track_name: str, measurements: dict, verdicts, d
     # нашёл бы его там и двойная сортировка по таймлайну молча ломалась
     # (см. docstring all_taste_recommendations)
     taste_recs = recommendations.all_taste_recommendations(
-        verdicts, diagnostics or {}, interference_matrix, section_profile=section_profile)
+        verdicts, diagnostics or {}, interference_matrix, section_profile=section_profile,
+        masking_diag=masking_diag)
     plugin_catalog.enrich_with_plugins(taste_recs, plugins_catalog)
     if taste_recs:
         diag_lines.append("Рекомендации по вкусовым правкам (Блок 7, с выбором — "
